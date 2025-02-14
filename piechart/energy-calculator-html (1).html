@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tide Energy Calculator</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/tailwindcss/2.2.19/tailwind.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Work+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Work Sans', sans-serif;
+            background: #FDF8F4;
+            min-height: 100vh;
+            color: #967259;
+        }
+        @font-face {
+            font-family: 'Tide Serif';
+            src: serif;
+        }
+        .card {
+            background: rgba(255, 255, 255, 0.9);
+            border-radius: 16px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+        }
+        .activity-btn {
+            transition: all 0.3s ease;
+        }
+        .activity-btn.selected {
+            background-color: #FDF1E4;
+            border-color: #967259;
+            color: #967259;
+        }
+        .energy-bar {
+            transition: width 0.5s ease-in-out;
+        }
+    </style>
+</head>
+<body class="p-4">
+    <!-- Header with Tide Logo -->
+    <div class="text-center mb-8">
+        <!-- Moon Phases with Tide Logo -->
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 200" class="w-full max-w-md mx-auto mb-6">
+            <!-- Moon phases -->
+            <g fill="#967259">
+                <!-- Phase 1 -->
+                <circle cx="100" cy="50" r="30" />
+                <circle cx="115" cy="50" r="30" fill="#FFF" />
+                
+                <!-- Phase 2 -->
+                <circle cx="250" cy="50" r="30" />
+                <circle cx="265" cy="50" r="30" fill="#FFF" />
+                
+                <!-- Full Moon -->
+                <circle cx="400" cy="50" r="30" />
+                
+                <!-- Phase 4 -->
+                <circle cx="550" cy="50" r="30" />
+                <circle cx="535" cy="50" r="30" fill="#FFF" />
+                
+                <!-- Phase 5 -->
+                <circle cx="700" cy="50" r="30" />
+                <circle cx="685" cy="50" r="30" fill="#FFF" />
+            </g>
+            
+            <!-- Stars -->
+            <g fill="#967259">
+                <path d="M50 20l2 2-2 2-2-2z" />
+                <path d="M750 30l2 2-2 2-2-2z" />
+                <path d="M150 15l2 2-2 2-2-2z" />
+                <path d="M650 25l2 2-2 2-2-2z" />
+                <path d="M450 10l2 2-2 2-2-2z" />
+            </g>
+            
+            <!-- Tide text -->
+            <text x="400" y="150" text-anchor="middle" font-family="serif" font-size="48" fill="#967259">tide.</text>
+        </svg>
+        
+        <h2 class="text-xl font-medium text-[#967259] mb-2">Energy Forecast</h2>
+        <p id="dailyAffirmation" class="text-[#967259] italic px-6">Loading your daily affirmation...</p>
+    </div>
+
+    <!-- Sleep Input Section -->
+    <div class="card p-6 mb-6">
+        <h3 class="text-lg font-medium text-gray-700 mb-4">How did you sleep?</h3>
+        
+        <div class="space-y-4">
+            <div class="space-y-2">
+                <label class="flex items-center gap-2 text-amber-700">
+                    <span>🌙</span>
+                    <span>Bedtime</span>
+                </label>
+                <input
+                    type="time"
+                    id="sleepTime"
+                    class="w-full p-2 rounded border border-amber-200 focus:outline-none focus:ring-2 focus:ring-amber-500"
+                >
+            </div>
+
+            <div class="space-y-2">
+                <label class="flex items-center gap-2 text-amber-700">
+                    <span>☀️</span>
+                    <span>Wake time</span>
+                </label>
+                <input
+                    type="time"
+                    id="wakeTime"
+                    class="w-full p-2 rounded border border-amber-200 focus:outline-none focus:ring-2 focus:ring-amber-500"
+                >
+            </div>
+            
+            <div id="sleepDuration" class="text-center font-medium hidden">
+                <span class="text-2xl text-amber-600">0</span>
+                <span class="text-amber-600 ml-2">hours of sleep</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Wake Feeling Section -->
+    <div class="card p-6 mb-6">
+        <h3 class="text-lg font-medium text-gray-700 mb-4">How do you feel this morning?</h3>
+        <div class="grid grid-cols-2 gap-3" id="wakeFeelings">
+            <button class="activity-btn p-3 rounded-lg border text-left">
+                ✨ Refreshed
+            </button>
+            <button class="activity-btn p-3 rounded-lg border text-left">
+                😊 Okay
+            </button>
+            <button class="activity-btn p-3 rounded-lg border text-left">
+                😴 Still Tired
+            </button>
+            <button class="activity-btn p-3 rounded-lg border text-left">
+                😫 Exhausted
+            </button>
+        </div>
+    </div>
+
+    <!-- Today's Activities -->
+    <div class="card p-6 mb-6">
+        <h3 class="text-lg font-medium text-gray-700 mb-4">Today's Activities</h3>
+        <div class="grid grid-cols-2 gap-3" id="activities">
+            <!-- Family & Social -->
+            <button class="activity-btn p-3 rounded-lg border text-left">
+                👨‍👩‍👧‍👦 Family Time
+            </button>
+            <button class="activity-btn p-3 rounded-lg border text-left">
+                🏡 Family Dinner
+            </button>
+            <button class="activity-btn p-3 rounded-lg border text-left">
+                🎨 Kids Activities
+            </button>
+            <button class="activity-btn p-3 rounded-lg border text-left">
+                ❤️ Visit Parents
+            </button>
+            
+            <!-- Work -->
+            <button class="activity-btn p-3 rounded-lg border text-left">
+                💼 Full Work Day
+            </button>
+            <button class="activity-btn p-3 rounded-lg border text-left">
+                🏠 Work from Home
+            </button>
+            
+            <!-- Physical -->
+            <button class="activity-btn p-3 rounded-lg border text-left">
+                💪 Gym Session
+            </button>
+            <button class="activity-btn p-3 rounded-lg border text-left">
+                🚶‍♀️ Family Walk
+            </button>
+        </div>
+    </div>
+
+    <!-- Energy Score -->
+    <div id="energyScore" class="card p-6 mb-6 hidden">
+        <div class="text-center space-y-4">
+            <h3 class="text-xl font-medium text-amber-900">Today's Energy Forecast</h3>
+            <div class="text-5xl font-bold text-amber-600">
+                <span id="scoreNumber">0</span>%
+            </div>
+            <div class="w-full bg-gray-200 rounded-full h-3">
+                <div id="energyBar" class="energy-bar h-3 rounded-full bg-amber-500" style="width: 0%"></div>
+            </div>
+            <p id="energyMessage" class="text-amber-700"></p>
+        </div>
+    </div>
+
+    <!-- Energy Boost Section -->
+    <div id="energyBoost" class="card p-6 mb-6 hidden">
+        <h3 class="text-lg font-medium text-amber-800 mb-3">
+            Energy Boost Options
+            <span class="text-sm font-normal ml-2">Select what appeals to you</span>
+        </h3>
+        <div class="grid grid-cols-2 gap-3">
+            <button class="activity-btn p-3 rounded-lg border text-left">
+                🛁 Warm Bath/Jacuzzi
+            </button>
+            <button class="activity-btn p-3 rounded-lg border text-left">
+                🌲 Nature Walk
+            </button>
+            <button class="activity-btn p-3 rounded-lg border text-left">
+                📔 Journaling
+            </button>
+            <button class="activity-btn p-3 rounded-lg border text-left">
+                🧘‍♀️ Gentle Yoga
+            </button>
+            <button class="activity-btn p-3 rounded-lg border text-left">
+                🫖 Calming Tea
+            </button>
+            <button class="activity-btn p-3 rounded-lg border text-left">
+                🎵 Calming Music
+            </button>
+        </div>
+    </div>
+
+    <script>
+        // Affirmations
+        const affirmations = [
+            "Every breath brings me peaceful energy ✨",
+            "I honor my body's natural rhythms 🌙",
+            "I choose activities that nourish my soul 🌿",
+            "My energy flows where my intention goes 💫",
+            "I am in tune with my body's needs 🧘‍♀️",
+            "Each day is a fresh start 🌅",
+            "I listen to my body with compassion 💗"
+        ];
+
+        // Set random affirmation
+        document.getElementById('dailyAffirmation').textContent = 
+            affirmations[Math.floor(Math.random() * affirmations.length)];
+
+        // Handle time inputs
+        const sleepTime = document.getElementById('sleepTime');
+        const wakeTime = document.getElementById('wakeTime');
+        const sleepDuration = document.getElementById('sleepDuration');
+
+        function calculateSleepHours() {
+            if (!sleepTime.value || !wakeTime.value) return;
+
+            let sleep = new Date(`2024-01-01 ${sleepTime.value}`);
+            let wake = new Date(`2024-01-01 ${wakeTime.value}`);
+            
+            if (wake < sleep) {
+                wake.setDate(wake.getDate() + 1);
+            }
+            
+            const diff = (wake - sleep) / (1000 * 60 * 60);
+            sleepDuration.classList.remove('hidden');
+            sleepDuration.querySelector('span').textContent = Math.round(diff * 10) / 10;
+            
+            calculateEnergyScore();
+        }
+
+        sleepTime.addEventListener('change', calculateSleepHours);
+        wakeTime.addEventListener('change', calculateSleepHours);
+
+        // Handle button selections
+        document.querySelectorAll('.activity-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                this.classList.toggle('selected');
+                calculateEnergyScore();
+            });
+        });
+
+        function calculateEnergyScore() {
+            const sleepHours = parseFloat(sleepDuration.querySelector('span').textContent) || 0;
+            const selectedActivities = document.querySelectorAll('.activity-btn.selected').length;
+            
+            let score = 0;
+            
+            // Sleep score (max 40 points)
+            if (sleepHours >= 8) score += 40;
+            else if (sleepHours >= 7) score += 35;
+            else if (sleepHours >= 6) score += 25;
+            else score += 15;
+            
+            // Activity score (max 60 points)
+            score += Math.min(selectedActivities * 10, 60);
+            
+            // Update UI
+            const energyScore = document.getElementById('energyScore');
+            const scoreNumber = document.getElementById('scoreNumber');
+            const energyBar = document.getElementById('energyBar');
+            const energyMessage = document.getElementById('energyMessage');
+            const energyBoost = document.getElementById('energyBoost');
+            
+            energyScore.classList.remove('hidden');
+            scoreNumber.textContent = score;
+            energyBar.style.width = `${score}%`;
+            
+            if (score > 70) {
+                energyMessage.textContent = '✨ Great energy levels today!';
+                energyBar.className = 'energy-bar h-3 rounded-full bg-green-500';
+                energyBoost.classList.add('hidden');
+            } else if (score > 40) {
+                energyMessage.textContent = '🌟 Moderate energy - pace yourself';
+                energyBar.className = 'energy-bar h-3 rounded-full bg-amber-500';
+                energyBoost.classList.add('hidden');
+            } else {
+                energyMessage.textContent = '🌙 Take it easy today and focus on self-care';
+                energyBar.className = 'energy-bar h-3 rounded-full bg-red-500';
+                energyBoost.classList.remove('hidden');
+            }
+        }
+    </script>
+</body>
+</html>
