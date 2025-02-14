@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Self-Worth Pie Chart</title>
+    <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .container { max-width: 800px; margin: 0 auto; }
+        .entry-form { margin: 20px 0; }
+        .entry-row { margin: 10px 0; }
+        input { padding: 5px; margin-right: 10px; }
+        button { padding: 5px 10px; }
+        .error { color: red; }
+        .template-area {
+            display: inline-block;
+            margin: 5px;
+            padding: 8px 15px;
+            background: #f0f0f0;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .template-area:hover {
+            background: #e0e0e0;
+        }
+        .instructions {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Self-Worth Pie Chart</h1>
+        
+        <div class="instructions">
+            <h3>How to Complete This Exercise:</h3>
+            <p>1. Think about different areas of your life and how much they contribute to your sense of self-worth</p>
+            <p>2. Add areas using the templates below or create your own</p>
+            <p>3. Assign percentages (must total 100%)</p>
+            <p>4. Click "Update Chart" to see your distribution</p>
+        </div>
+
+        <div>
+            <h3>Common Life Areas (Click to add):</h3>
+            <div id="templates">
+                <div class="template-area" onclick="addTemplate('Family & Relationships')">Family & Relationships</div>
+                <div class="template-area" onclick="addTemplate('Work/Career')">Work/Career</div>
+                <div class="template-area" onclick="addTemplate('Health & Fitness')">Health & Fitness</div>
+                <div class="template-area" onclick="addTemplate('Personal Growth')">Personal Growth</div>
+                <div class="template-area" onclick="addTemplate('Social Life')">Social Life</div>
+                <div class="template-area" onclick="addTemplate('Hobbies')">Hobbies</div>
+                <div class="template-area" onclick="addTemplate('Spirituality')">Spirituality</div>
+                <div class="template-area" onclick="addTemplate('Financial Success')">Financial Success</div>
+            </div>
+        </div>
+
+        <div class="entry-form">
+            <div id="entries"></div>
+            <button onclick="addEntry()">Add Another Area</button>
+            <button onclick="updateChart()">Update Chart</button>
+            <div id="error" class="error"></div>
+        </div>
+
+        <div id="piechart" style="width: 800px; height: 500px;"></div>
+    </div>
+
+    <script>
+        google.charts.load('current', {'packages':['corechart']});
+        google.charts.setOnLoadCallback(initChart);
+
+        let entries = [];
+        
+        function initChart() {
+            addEntry(); // Add first entry row
+            drawChart([]); // Draw empty chart
+        }
+
+        function addTemplate(area) {
+            const emptyEntry = document.querySelector('input[type="text"][value=""]');
+            if (emptyEntry) {
+                emptyEntry.value = area;
+            } else {
+                addEntry();
+                const lastEntry = document.querySelector('#entries div:last-child input[type="text"]');
+                lastEntry.value = area;
+            }
+        }
+
+        function addEntry() {
+            const entriesDiv = document.getElementById('entries');
+            const newRow = document.createElement('div');
+            newRow.className = 'entry-row';
+            newRow.innerHTML = `
+                <input type="text" placeholder="Life Area" style="width: 200px;">
+                <input type="number" placeholder="%" style="width: 60px;" min="0" max="100">
+                <button onclick="removeEntry(this)">Remove</button>
+            `;
+            entriesDiv.appendChild(newRow);
+        }
+
+        function removeEntry(button) {
+            if (document.getElementsByClassName('entry-row').length > 1) {
+                button.parentElement.remove();
+            }
+        }
+
+        function updateChart() {
+            const rows = document.getElementsByClassName('entry-row');
+            let data = [];
+            let total = 0;
+
+            for (let row of rows) {
+                const area = row.children[0].value;
+                const percentage = parseFloat(row.children[1].value) || 0;
+                
+                if (area && percentage) {
+                    data.push([area, percentage]);
+                    total += percentage;
+                }
+            }
+
+            const error = document.getElementById('error');
+            if (total !== 100) {
+                error.textContent = `Percentages must add up to 100%. Current total: ${total}%`;
+                return;
+            }
+            error.textContent = '';
+
+            drawChart(data);
+        }
+
+        function drawChart(data) {
+            const chartData = google.visualization.arrayToDataTable([
+                ['Area', 'Percentage'],
+                ...data
+            ]);
+
+            const options = {
+                title: 'My Self-Worth Distribution',
+                pieHole: 0.4,
+                slices: {
+                    0: { color: '#FF8042' },
+                    1: { color: '#0088FE' },
+                    2: { color: '#00C49F' },
+                    3: { color: '#FFBB28' },
+                    4: { color: '#8884D8' },
+                    5: { color: '#82CA9D' }
+                }
+            };
+
+            const chart = new google.visualization.PieChart(document.getElementById('piechart'));
+            chart.draw(chartData, options);
+        }
+    </script>
+</body>
+</html>
