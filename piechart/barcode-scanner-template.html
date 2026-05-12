@@ -1,0 +1,1104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0">
+<title>Pantry Scan</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600&family=Spectral:wght@400;500&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  /* ============================================================
+     Pantry Scan — Cogniss External Template Demo
+     Persona 2: Multilingual immigrant health app
+     ============================================================ */
+
+  :root {
+    --bg: #f5f1ea;
+    --ink: #1a1a1a;
+    --ink-soft: #4a4a4a;
+    --ink-fade: #888;
+    --line: #e6dfd2;
+    --paper: #fbf8f2;
+    --accent: #c8553d;       /* terracotta */
+    --accent-soft: #f4d9d2;
+    --good: #5a7a3e;          /* moss */
+    --good-soft: #e3ebd6;
+    --warn: #c89933;          /* mustard */
+    --warn-soft: #f5e7c4;
+    --bad: #a53a2a;
+    --bad-soft: #f0d3ce;
+    --shadow: 0 1px 0 rgba(0,0,0,0.04), 0 8px 24px -12px rgba(50,30,10,0.18);
+  }
+
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+  html, body {
+    margin: 0; padding: 0;
+    height: 100%;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: 'Spectral', Georgia, 'Times New Roman', serif;
+    font-size: 17px;
+    line-height: 1.5;
+    overscroll-behavior: none;
+  }
+
+  body {
+    /* subtle paper texture */
+    background-image:
+      radial-gradient(rgba(120,90,40,0.04) 1px, transparent 1px);
+    background-size: 4px 4px;
+  }
+
+  .app {
+    max-width: 560px;
+    margin: 0 auto;
+    min-height: 100%;
+    display: flex;
+    flex-direction: column;
+  }
+
+  header.bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 18px 20px 14px;
+    border-bottom: 1px solid var(--line);
+    background: var(--bg);
+    position: sticky; top: 0; z-index: 10;
+  }
+  header.bar .brand {
+    font-family: 'Cormorant Garamond', Georgia, serif;
+    font-weight: 600;
+    font-size: 22px;
+    letter-spacing: -0.01em;
+  }
+  header.bar .brand span {
+    color: var(--accent);
+  }
+  header.bar .count {
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 11px;
+    color: var(--ink-fade);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  main {
+    flex: 1;
+    padding: 24px 20px 100px;
+  }
+
+  /* ---------- screens ---------- */
+  .screen { display: none; }
+  .screen.active { display: block; animation: fadeUp 0.35s ease both; }
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(8px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  /* ---------- language picker ---------- */
+  .welcome h1 {
+    font-family: 'Cormorant Garamond', Georgia, serif;
+    font-size: 38px;
+    line-height: 1.05;
+    margin: 8px 0 6px;
+    font-weight: 500;
+    letter-spacing: -0.015em;
+  }
+  .welcome .sub {
+    color: var(--ink-soft);
+    font-size: 16px;
+    margin-bottom: 28px;
+    font-style: italic;
+  }
+  .lang-prompt {
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 11px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--ink-fade);
+    margin: 0 0 12px;
+  }
+  .lang-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+  .lang-btn {
+    background: var(--paper);
+    border: 1px solid var(--line);
+    padding: 16px 14px;
+    text-align: left;
+    cursor: pointer;
+    font-family: inherit;
+    font-size: 16px;
+    color: var(--ink);
+    transition: border-color 0.15s, transform 0.1s;
+  }
+  .lang-btn:hover { border-color: var(--ink); }
+  .lang-btn:active { transform: scale(0.98); }
+  .lang-btn .native {
+    display: block;
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 22px;
+    font-weight: 500;
+    margin-bottom: 2px;
+  }
+  .lang-btn .english {
+    font-size: 12px;
+    color: var(--ink-fade);
+    font-family: 'JetBrains Mono', monospace;
+    letter-spacing: 0.04em;
+  }
+
+  /* ---------- scanner ---------- */
+  .scanner-wrap {
+    position: relative;
+    background: #1a1a1a;
+    aspect-ratio: 4/3;
+    border-radius: 2px;
+    overflow: hidden;
+    margin-bottom: 16px;
+    box-shadow: var(--shadow);
+  }
+  #video { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .reticule {
+    position: absolute; inset: 0;
+    pointer-events: none;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .reticule svg {
+    width: 70%;
+    max-width: 280px;
+    opacity: 0.9;
+  }
+  .scanner-status {
+    position: absolute; bottom: 12px; left: 12px; right: 12px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: white;
+    text-align: center;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    text-shadow: 0 1px 2px rgba(0,0,0,0.6);
+  }
+  .scanner-fallback {
+    aspect-ratio: 4/3;
+    background: var(--paper);
+    border: 1px dashed var(--line);
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    padding: 20px; text-align: center;
+    color: var(--ink-soft);
+    border-radius: 2px;
+    margin-bottom: 16px;
+  }
+  .scanner-fallback svg { margin-bottom: 10px; opacity: 0.5; }
+
+  .action-row {
+    display: flex; gap: 8px; margin-bottom: 14px;
+  }
+  .btn {
+    flex: 1;
+    padding: 14px 16px;
+    font-family: inherit;
+    font-size: 15px;
+    border: 1px solid var(--ink);
+    background: var(--ink);
+    color: var(--bg);
+    cursor: pointer;
+    letter-spacing: 0.01em;
+    transition: transform 0.1s, opacity 0.15s;
+  }
+  .btn:active { transform: scale(0.98); }
+  .btn.secondary {
+    background: transparent;
+    color: var(--ink);
+  }
+  .btn.ghost {
+    background: transparent;
+    color: var(--ink-soft);
+    border-color: var(--line);
+  }
+  .btn.accent {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: white;
+  }
+  .btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+  .manual-entry {
+    display: flex; gap: 8px; margin-top: 8px;
+  }
+  .manual-entry input {
+    flex: 1;
+    padding: 12px 14px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 15px;
+    background: var(--paper);
+    border: 1px solid var(--line);
+    color: var(--ink);
+    letter-spacing: 0.04em;
+  }
+  .manual-entry input:focus { outline: none; border-color: var(--ink); }
+
+  /* ---------- product result ---------- */
+  .product {
+    background: var(--paper);
+    border: 1px solid var(--line);
+    padding: 22px 20px;
+    box-shadow: var(--shadow);
+    margin-bottom: 16px;
+  }
+  .product .barcode {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--ink-fade);
+    letter-spacing: 0.08em;
+    margin-bottom: 8px;
+  }
+  .product .name {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 26px;
+    font-weight: 500;
+    line-height: 1.15;
+    margin-bottom: 4px;
+    letter-spacing: -0.01em;
+  }
+  .product .brand-line {
+    color: var(--ink-soft);
+    font-style: italic;
+    margin-bottom: 16px;
+    font-size: 14px;
+  }
+
+  .grade-row {
+    display: flex; gap: 8px;
+    margin-bottom: 18px;
+    flex-wrap: wrap;
+  }
+  .badge {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    padding: 5px 9px;
+    background: var(--line);
+    color: var(--ink);
+  }
+  .badge.good { background: var(--good-soft); color: var(--good); }
+  .badge.warn { background: var(--warn-soft); color: #8a6a1a; }
+  .badge.bad  { background: var(--bad-soft);  color: var(--bad);  }
+
+  .nutrients {
+    border-top: 1px solid var(--line);
+    padding-top: 14px;
+  }
+  .nutri-row {
+    display: flex; justify-content: space-between;
+    padding: 8px 0;
+    border-bottom: 1px dotted var(--line);
+    font-size: 15px;
+  }
+  .nutri-row:last-child { border-bottom: none; }
+  .nutri-row .label { color: var(--ink-soft); }
+  .nutri-row .value {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 14px;
+  }
+
+  .swap {
+    margin-top: 16px;
+    background: var(--accent-soft);
+    border-left: 3px solid var(--accent);
+    padding: 16px 18px;
+  }
+  .swap .label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 6px;
+  }
+  .swap .text {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 19px;
+    line-height: 1.3;
+  }
+
+  /* ---------- log / history ---------- */
+  .log {
+    margin-top: 20px;
+  }
+  .log h3 {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--ink-fade);
+    margin: 0 0 10px;
+    font-weight: normal;
+  }
+  .log-item {
+    display: flex; justify-content: space-between;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--line);
+    font-size: 14px;
+  }
+  .log-item .nm { color: var(--ink); }
+  .log-item .gr { font-family: 'JetBrains Mono', monospace; font-size: 12px; color: var(--ink-fade); }
+
+  /* ---------- loading / error ---------- */
+  .loading, .error {
+    text-align: center;
+    padding: 40px 20px;
+    color: var(--ink-soft);
+  }
+  .loading .dots {
+    display: inline-block;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 20px;
+    letter-spacing: 0.2em;
+  }
+  .loading .dots::after {
+    content: '.';
+    animation: dots 1.4s steps(4, end) infinite;
+  }
+  @keyframes dots { 0%,20% { content: '.'; } 40% { content: '..'; } 60%,100% { content: '...'; } }
+  .error .icon { font-size: 28px; margin-bottom: 8px; }
+
+  /* ---------- footer / done ---------- */
+  .done-row {
+    margin-top: 24px;
+    padding-top: 20px;
+    border-top: 1px solid var(--line);
+  }
+
+  /* ---------- dev banner ---------- */
+  .dev-banner {
+    background: #fffbe6;
+    border-bottom: 1px solid #f5e7c4;
+    color: #8a6a1a;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    padding: 6px 12px;
+    text-align: center;
+    letter-spacing: 0.06em;
+  }
+</style>
+</head>
+<body>
+
+<div class="app">
+  <div id="devBanner" class="dev-banner" style="display:none">
+    DEV MODE — bridge mocked, not connected to Cogniss
+  </div>
+
+  <header class="bar">
+    <div class="brand">Pantry<span>·</span>Scan</div>
+    <div class="count" id="scanCount">0 scans</div>
+  </header>
+
+  <main>
+    <!-- Screen: language picker -->
+    <section id="screenWelcome" class="screen welcome">
+      <h1 id="welcomeTitle">Find healthier food, in your language.</h1>
+      <p class="sub" id="welcomeSub">Scan any product. We'll translate the label and suggest a better swap.</p>
+      <p class="lang-prompt">Choose your language</p>
+      <div class="lang-grid" id="langGrid"></div>
+    </section>
+
+    <!-- Screen: scanner -->
+    <section id="screenScan" class="screen">
+      <div id="scannerHost"></div>
+
+      <div class="action-row">
+        <button id="btnStartCam" class="btn">Scan barcode</button>
+        <button id="btnManual" class="btn secondary">Enter code</button>
+      </div>
+
+      <div id="manualEntry" class="manual-entry" style="display:none">
+        <input id="manualInput" inputmode="numeric" pattern="[0-9]*" placeholder="e.g. 3017620422003" maxlength="14">
+        <button id="btnLookup" class="btn">Look up</button>
+      </div>
+
+      <div class="log" id="logSection" style="display:none">
+        <h3 id="logTitle">Today's scans</h3>
+        <div id="logList"></div>
+      </div>
+
+      <div class="done-row">
+        <button id="btnFinish" class="btn ghost">Finish session</button>
+      </div>
+    </section>
+
+    <!-- Screen: product result -->
+    <section id="screenProduct" class="screen">
+      <div id="productHost"></div>
+      <div class="action-row" style="margin-top:16px">
+        <button id="btnScanAnother" class="btn accent">Scan another</button>
+      </div>
+    </section>
+
+    <!-- Screen: loading / error -->
+    <section id="screenLoading" class="screen">
+      <div class="loading">
+        <div class="dots">scanning</div>
+      </div>
+    </section>
+
+    <section id="screenError" class="screen">
+      <div class="error">
+        <div class="icon">⌀</div>
+        <p id="errorMsg">Product not found.</p>
+        <button class="btn secondary" id="btnErrBack" style="max-width:200px;margin-top:14px">Try again</button>
+      </div>
+    </section>
+  </main>
+</div>
+
+<script>
+/* ============================================================
+   PANTRY SCAN
+   A Cogniss external template demo for Persona 2.
+   ------------------------------------------------------------
+   Architecture:
+     1. Bridge layer       -> talks to the Cogniss host
+     2. State              -> language, scan log, questions
+     3. UI                 -> screens and rendering
+     4. Scanner            -> getUserMedia + ZXing fallback
+     5. Open Food Facts    -> direct fetch to public API
+     6. i18n / swaps       -> driven by activity.customConfig
+   ============================================================ */
+
+// ---------- 1. BRIDGE ----------------------------------------------------
+const isNative = typeof window.ReactNativeWebView !== 'undefined';
+// We can't reliably tell standalone-in-iframe (e.g. file preview) apart from
+// Cogniss-in-iframe at boot, so we don't try. Instead we send READY both ways
+// and wait briefly; if no host responds we fall back to dev mode.
+let hostResponded = false;
+
+function postToApp(key, data) {
+  const text = JSON.stringify({ key, data });
+  if (isNative) {
+    window.ReactNativeWebView.postMessage(text);
+  } else if (window.parent !== window) {
+    window.parent.postMessage(text, '*');
+  }
+  console.log('[bridge:out]', key, data);
+}
+
+// Bridge state, filled by host messages
+const bridge = {
+  api: null,
+  auth: null,
+  user: null,
+  activity: null,
+  activityResponse: null,
+  questions: [],
+  config: {},
+  ready: false,
+};
+
+const required = ['ACTIVITY', 'ACTIVITY_RESPONSE', 'QUESTIONS', 'CONFIG'];
+const received = new Set();
+
+window.addEventListener('message', function(event) {
+  let msg;
+  try { msg = JSON.parse(event.data); } catch (e) { return; }
+  if (!msg || !msg.key) return;
+  handleHostMessage(msg);
+});
+
+function handleHostMessage(msg) {
+  hostResponded = true;
+  switch (msg.key) {
+    case 'API':                 bridge.api = msg.data; break;
+    case 'AUTH':                bridge.auth = msg.data; break;
+    case 'USER':                bridge.user = msg.data; break;
+    case 'ACTIVITY':            bridge.activity = msg.data; received.add('ACTIVITY'); break;
+    case 'ACTIVITY_RESPONSE':   bridge.activityResponse = msg.data; received.add('ACTIVITY_RESPONSE'); break;
+    case 'QUESTIONS':           bridge.questions = msg.data || []; received.add('QUESTIONS'); break;
+    case 'QUESTION':            /* not needed — out-of-order template */ break;
+    case 'CONFIG':              bridge.config = msg.data || {}; received.add('CONFIG'); break;
+    case 'QUESTION_RESPONSE':   /* container ack — no-op for this template */ break;
+    case 'REQUEST_RESPONSE':    /* not used in demo */ break;
+  }
+  if (!bridge.ready && required.every(k => received.has(k))) {
+    bridge.ready = true;
+    initialise();
+  }
+}
+
+// Tell the host we're alive, then wait briefly for a response.
+// If none comes (standalone preview, file:// open, etc.) fall back to dev mode.
+window.addEventListener('load', function() {
+  postToApp('READY_DYNAMIC_MEDIA', null);
+  setTimeout(function() {
+    if (!hostResponded && !bridge.ready) {
+      document.getElementById('devBanner').style.display = 'block';
+      mockHostInit();
+    }
+  }, 400);
+});
+
+function mockHostInit() {
+  bridge.activity = { id: 'dev-activity', customConfig: {} };
+  bridge.activityResponse = { id: 'dev-response' };
+  bridge.questions = [
+    { _id: 'q1', type: 'SHORT_TEXT', text: 'Scan a product' }
+  ];
+  bridge.config = window.DEMO_CONFIG;  // see bottom of file
+  bridge.ready = true;
+  initialise();
+}
+
+// ---------- 2. STATE -----------------------------------------------------
+const state = {
+  lang: null,
+  scans: [],            // {barcode, name, grade, nova, at}
+  scanning: false,
+  stream: null,
+  scanner: null,
+};
+
+// ---------- 3. UI / NAVIGATION ------------------------------------------
+function show(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+
+function t(key, fallback) {
+  const dict = (bridge.config.i18n && bridge.config.i18n[state.lang]) || {};
+  return dict[key] || fallback;
+}
+
+function initialise() {
+  // Apply any title overrides from CONFIG that don't depend on a chosen language
+  if (bridge.config.appTitle) {
+    document.querySelector('.brand').innerHTML = bridge.config.appTitle;
+  }
+  renderLangPicker();
+  show('screenWelcome');
+}
+
+function renderLangPicker() {
+  const langs = bridge.config.languages || [
+    { code: 'en', name: 'English', native: 'English' },
+    { code: 'es', name: 'Spanish', native: 'Español' },
+  ];
+  const grid = document.getElementById('langGrid');
+  grid.innerHTML = '';
+  langs.forEach(l => {
+    const btn = document.createElement('button');
+    btn.className = 'lang-btn';
+    btn.innerHTML = `<span class="native">${l.native}</span><span class="english">${l.name}</span>`;
+    btn.onclick = () => chooseLanguage(l.code);
+    grid.appendChild(btn);
+  });
+}
+
+function chooseLanguage(code) {
+  state.lang = code;
+  // localise on-screen labels
+  document.getElementById('welcomeTitle').textContent = t('welcomeTitle', document.getElementById('welcomeTitle').textContent);
+  document.getElementById('btnStartCam').textContent = t('scanBarcode', 'Scan barcode');
+  document.getElementById('btnManual').textContent = t('enterCode', 'Enter code');
+  document.getElementById('btnLookup').textContent = t('lookup', 'Look up');
+  document.getElementById('btnScanAnother').textContent = t('scanAnother', 'Scan another');
+  document.getElementById('btnFinish').textContent = t('finishSession', 'Finish session');
+  document.getElementById('logTitle').textContent = t('todaysScans', "Today's scans");
+  show('screenScan');
+}
+
+function updateScanCount() {
+  document.getElementById('scanCount').textContent =
+    state.scans.length + ' ' + (state.scans.length === 1 ? 'scan' : 'scans');
+  if (state.scans.length > 0) {
+    document.getElementById('logSection').style.display = 'block';
+    const list = document.getElementById('logList');
+    list.innerHTML = state.scans.slice().reverse().map(s =>
+      `<div class="log-item"><span class="nm">${escapeHtml(s.name)}</span><span class="gr">${(s.grade || '?').toUpperCase()}</span></div>`
+    ).join('');
+  }
+}
+
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c]);
+}
+
+// ---------- 4. SCANNER --------------------------------------------------
+async function startCamera() {
+  const host = document.getElementById('scannerHost');
+  host.innerHTML = `
+    <div class="scanner-wrap">
+      <video id="video" autoplay playsinline muted></video>
+      <div class="reticule">
+        <svg viewBox="0 0 280 140" fill="none">
+          <path d="M10 10 L10 40 M10 10 L40 10" stroke="#fff" stroke-width="2"/>
+          <path d="M270 10 L270 40 M270 10 L240 10" stroke="#fff" stroke-width="2"/>
+          <path d="M10 130 L10 100 M10 130 L40 130" stroke="#fff" stroke-width="2"/>
+          <path d="M270 130 L270 100 M270 130 L240 130" stroke="#fff" stroke-width="2"/>
+          <line x1="20" y1="70" x2="260" y2="70" stroke="${getCssVar('--accent')}" stroke-width="1" opacity="0.7"/>
+        </svg>
+      </div>
+      <div class="scanner-status">${t('aligning', 'Aligning camera…')}</div>
+    </div>
+  `;
+
+  try {
+    state.stream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: 'environment' },
+      audio: false
+    });
+    document.getElementById('video').srcObject = state.stream;
+    document.querySelector('.scanner-status').textContent = t('pointAtBarcode', 'Point at a barcode');
+    state.scanning = true;
+    startZXing();
+  } catch (e) {
+    // camera blocked or unavailable — graceful fallback
+    showCameraFallback(e.message || 'Camera unavailable');
+  }
+}
+
+function showCameraFallback(reason) {
+  document.getElementById('scannerHost').innerHTML = `
+    <div class="scanner-fallback">
+      <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4">
+        <rect x="3" y="6" width="18" height="13" rx="1"/>
+        <circle cx="12" cy="12.5" r="3.5"/>
+      </svg>
+      <strong>${t('cameraUnavailable', 'Camera unavailable')}</strong>
+      <small style="margin-top:6px">${escapeHtml(reason)} — ${t('useManualEntry', 'use manual entry below.')}</small>
+    </div>
+  `;
+  document.getElementById('manualEntry').style.display = 'flex';
+  document.getElementById('manualInput').focus();
+}
+
+function stopCamera() {
+  state.scanning = false;
+  if (state.scanner) { try { state.scanner.reset(); } catch (e) {} state.scanner = null; }
+  if (state.stream) {
+    state.stream.getTracks().forEach(t => t.stop());
+    state.stream = null;
+  }
+}
+
+async function startZXing() {
+  // Lazy-load ZXing from CDN
+  if (!window.ZXing) {
+    await loadScript('https://cdn.jsdelivr.net/npm/@zxing/library@0.21.3/umd/index.min.js');
+  }
+  if (!window.ZXing) return;  // load failed
+  try {
+    const reader = new window.ZXing.BrowserMultiFormatReader();
+    state.scanner = reader;
+    reader.decodeFromVideoElement(document.getElementById('video'), (result, err) => {
+      if (!state.scanning) return;
+      if (result) {
+        const code = result.getText();
+        stopCamera();
+        lookupProduct(code);
+      }
+    });
+  } catch (e) {
+    console.warn('ZXing failed', e);
+  }
+}
+
+function loadScript(src) {
+  return new Promise((resolve, reject) => {
+    const s = document.createElement('script');
+    s.src = src; s.async = true;
+    s.onload = resolve; s.onerror = reject;
+    document.head.appendChild(s);
+  });
+}
+
+function getCssVar(name) {
+  return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+}
+
+// ---------- 5. OPEN FOOD FACTS ------------------------------------------
+async function lookupProduct(barcode) {
+  show('screenLoading');
+  document.querySelector('#screenLoading .dots').textContent = t('lookingUp', 'looking up');
+
+  // Try the live API first
+  try {
+    const r = await fetch(`https://world.openfoodfacts.org/api/v2/product/${encodeURIComponent(barcode)}.json?fields=product_name,brands,nutriscore_grade,nova_group,nutriments,categories_tags,image_small_url`);
+    const data = await r.json();
+    if (data.status === 1 && data.product) {
+      renderProduct(barcode, data.product);
+      submitScan(barcode, data.product);
+      return;
+    }
+    // API reachable but product missing — try offline before giving up
+    const offline = window.OFFLINE_PRODUCTS && window.OFFLINE_PRODUCTS[barcode];
+    if (offline) {
+      renderProduct(barcode, offline);
+      submitScan(barcode, offline);
+      return;
+    }
+    return showError(t('notFound', 'Product not found.'));
+  } catch (e) {
+    // Network blocked, offline, CORS, etc. — fall back to bundled data
+    console.warn('Open Food Facts fetch failed:', e && e.message);
+    const offline = window.OFFLINE_PRODUCTS && window.OFFLINE_PRODUCTS[barcode];
+    if (offline) {
+      renderProduct(barcode, offline);
+      submitScan(barcode, offline);
+      return;
+    }
+    const detail = (e && e.message) ? ` (${e.message})` : '';
+    return showError(t('networkError', 'Could not reach the food database.') + detail);
+  }
+}
+
+function renderProduct(barcode, p) {
+  const name = p.product_name || t('unknownProduct', 'Unknown product');
+  const brand = p.brands || '';
+  const grade = (p.nutriscore_grade || '').toLowerCase();
+  const nova = p.nova_group;
+  const n = p.nutriments || {};
+
+  const swap = findSwap(p);
+
+  const html = `
+    <div class="product">
+      <div class="barcode">${barcode}</div>
+      <div class="name">${escapeHtml(name)}</div>
+      ${brand ? `<div class="brand-line">${escapeHtml(brand)}</div>` : ''}
+      <div class="grade-row">
+        ${grade ? `<span class="badge ${gradeClass(grade)}">${t('nutriscore', 'Nutri-score')} ${grade.toUpperCase()}</span>` : ''}
+        ${nova ? `<span class="badge ${novaClass(nova)}">${t('nova', 'NOVA')} ${nova}</span>` : ''}
+      </div>
+      <div class="nutrients">
+        ${nutrientRow(t('energy', 'Energy'), n['energy-kcal_100g'], 'kcal / 100g')}
+        ${nutrientRow(t('sugars', 'Sugars'), n['sugars_100g'], 'g / 100g')}
+        ${nutrientRow(t('saturated', 'Saturated fat'), n['saturated-fat_100g'], 'g / 100g')}
+        ${nutrientRow(t('salt', 'Salt'), n['salt_100g'], 'g / 100g')}
+        ${nutrientRow(t('fibre', 'Fibre'), n['fiber_100g'], 'g / 100g')}
+      </div>
+      ${swap ? `
+        <div class="swap">
+          <div class="label">${t('swapLabel', 'Try this instead')}</div>
+          <div class="text">${escapeHtml(swap)}</div>
+        </div>` : ''}
+    </div>
+  `;
+  document.getElementById('productHost').innerHTML = html;
+  show('screenProduct');
+}
+
+function nutrientRow(label, val, unit) {
+  if (val === undefined || val === null) return '';
+  return `<div class="nutri-row"><span class="label">${label}</span><span class="value">${Number(val).toFixed(1)} ${unit}</span></div>`;
+}
+
+function gradeClass(g) {
+  if (g === 'a' || g === 'b') return 'good';
+  if (g === 'c') return 'warn';
+  return 'bad';
+}
+function novaClass(n) {
+  if (n <= 2) return 'good';
+  if (n === 3) return 'warn';
+  return 'bad';
+}
+
+function findSwap(product) {
+  const swapTable = bridge.config.swaps || {};
+  const lang = state.lang;
+  const tags = product.categories_tags || [];
+  for (const tag of tags) {
+    // normalise: "en:sugary-snacks" -> "sugary-snacks"
+    const key = tag.replace(/^[a-z]{2}:/, '');
+    if (swapTable[key] && swapTable[key][lang]) {
+      return swapTable[key][lang];
+    }
+  }
+  // generic fallback by nutriscore
+  if ((product.nutriscore_grade || '').toLowerCase() >= 'd') {
+    const g = swapTable.__generic_unhealthy;
+    if (g && g[lang]) return g[lang];
+  }
+  return null;
+}
+
+function showError(msg) {
+  document.getElementById('errorMsg').textContent = msg;
+  show('screenError');
+}
+
+// ---------- 6. SUBMITTING TO COGNISS ------------------------------------
+function submitScan(barcode, product) {
+  const entry = {
+    barcode,
+    name: product.product_name || 'Unknown',
+    grade: product.nutriscore_grade,
+    nova: product.nova_group,
+    at: new Date().toISOString(),
+  };
+  state.scans.push(entry);
+  updateScanCount();
+
+  // We treat the topic as having a single SHORT_TEXT question
+  // and submit each scan as an out-of-order response with the
+  // barcode + product name folded into the `text` field.
+  const q = bridge.questions[0];
+  if (!q) return;
+
+  postToApp('QUESTION_RESPONSE', {
+    index: 0,
+    text: `${barcode} :: ${entry.name}`,
+    duration: 0,
+  });
+}
+
+function finishSession() {
+  stopCamera();
+  postToApp('QUIT', {
+    completeState: 'COMPLETE',
+    customScore: state.scans.length,
+  });
+  // local fallback if host doesn't navigate
+  show('screenWelcome');
+}
+
+// ---------- UI WIRING ---------------------------------------------------
+document.getElementById('btnStartCam').onclick = startCamera;
+document.getElementById('btnManual').onclick = () => {
+  const m = document.getElementById('manualEntry');
+  m.style.display = m.style.display === 'none' ? 'flex' : 'none';
+  if (m.style.display === 'flex') document.getElementById('manualInput').focus();
+};
+document.getElementById('btnLookup').onclick = () => {
+  const v = document.getElementById('manualInput').value.trim();
+  if (v) lookupProduct(v);
+};
+document.getElementById('manualInput').addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') document.getElementById('btnLookup').click();
+});
+document.getElementById('btnScanAnother').onclick = () => {
+  show('screenScan');
+};
+document.getElementById('btnErrBack').onclick = () => show('screenScan');
+document.getElementById('btnFinish').onclick = finishSession;
+
+// ---------- DEMO CONFIG (used in dev mode only) -------------------------
+// In a real Cogniss activity this would arrive via the CONFIG message
+// from activity.customConfig set by the Creator.
+window.DEMO_CONFIG = {
+  appTitle: 'Pantry<span>·</span>Scan',
+  languages: [
+    { code: 'en', name: 'English',   native: 'English'   },
+    { code: 'es', name: 'Spanish',   native: 'Español'   },
+    { code: 'vi', name: 'Vietnamese', native: 'Tiếng Việt' },
+    { code: 'ar', name: 'Arabic',    native: 'العربية'    },
+    { code: 'zh', name: 'Chinese',   native: '中文'       },
+    { code: 'hi', name: 'Hindi',     native: 'हिन्दी'     },
+  ],
+  i18n: {
+    en: {
+      welcomeTitle: 'Find healthier food, in your language.',
+      scanBarcode: 'Scan barcode',
+      enterCode: 'Enter code',
+      lookup: 'Look up',
+      scanAnother: 'Scan another',
+      finishSession: 'Finish session',
+      todaysScans: "Today's scans",
+      aligning: 'Aligning camera…',
+      pointAtBarcode: 'Point at a barcode',
+      cameraUnavailable: 'Camera unavailable',
+      useManualEntry: 'use manual entry below.',
+      lookingUp: 'looking up',
+      notFound: 'Product not found.',
+      networkError: 'Could not reach the food database.',
+      unknownProduct: 'Unknown product',
+      nutriscore: 'Nutri-score',
+      nova: 'NOVA',
+      energy: 'Energy',
+      sugars: 'Sugars',
+      saturated: 'Saturated fat',
+      salt: 'Salt',
+      fibre: 'Fibre',
+      swapLabel: 'Try this instead',
+    },
+    es: {
+      welcomeTitle: 'Encuentra comida más sana, en tu idioma.',
+      scanBarcode: 'Escanear código',
+      enterCode: 'Introducir código',
+      lookup: 'Buscar',
+      scanAnother: 'Escanear otro',
+      finishSession: 'Terminar sesión',
+      todaysScans: 'Escaneos de hoy',
+      aligning: 'Alineando la cámara…',
+      pointAtBarcode: 'Apunta al código de barras',
+      cameraUnavailable: 'Cámara no disponible',
+      useManualEntry: 'introduce el código abajo.',
+      lookingUp: 'buscando',
+      notFound: 'Producto no encontrado.',
+      networkError: 'No se pudo acceder a la base de datos.',
+      unknownProduct: 'Producto desconocido',
+      nutriscore: 'Nutri-score',
+      nova: 'NOVA',
+      energy: 'Energía',
+      sugars: 'Azúcares',
+      saturated: 'Grasas saturadas',
+      salt: 'Sal',
+      fibre: 'Fibra',
+      swapLabel: 'Prueba esto en su lugar',
+    },
+    vi: {
+      welcomeTitle: 'Tìm thực phẩm lành mạnh hơn, bằng ngôn ngữ của bạn.',
+      scanBarcode: 'Quét mã vạch',
+      enterCode: 'Nhập mã',
+      lookup: 'Tra cứu',
+      scanAnother: 'Quét sản phẩm khác',
+      finishSession: 'Kết thúc',
+      todaysScans: 'Quét hôm nay',
+      aligning: 'Đang căn chỉnh camera…',
+      pointAtBarcode: 'Hướng vào mã vạch',
+      cameraUnavailable: 'Camera không khả dụng',
+      useManualEntry: 'nhập mã thủ công bên dưới.',
+      lookingUp: 'đang tra cứu',
+      notFound: 'Không tìm thấy sản phẩm.',
+      networkError: 'Không thể kết nối tới cơ sở dữ liệu.',
+      unknownProduct: 'Sản phẩm không xác định',
+      nutriscore: 'Nutri-score',
+      nova: 'NOVA',
+      energy: 'Năng lượng',
+      sugars: 'Đường',
+      saturated: 'Chất béo bão hòa',
+      salt: 'Muối',
+      fibre: 'Chất xơ',
+      swapLabel: 'Thử món này thay thế',
+    },
+    ar: {
+      welcomeTitle: 'اعثر على طعام أكثر صحة بلغتك.',
+      scanBarcode: 'مسح الباركود',
+      enterCode: 'إدخال الرمز',
+      lookup: 'بحث',
+      scanAnother: 'مسح آخر',
+      finishSession: 'إنهاء الجلسة',
+      todaysScans: 'عمليات اليوم',
+      aligning: 'جارٍ محاذاة الكاميرا…',
+      pointAtBarcode: 'وجّه نحو الباركود',
+      cameraUnavailable: 'الكاميرا غير متاحة',
+      useManualEntry: 'أدخل الرمز يدوياً أدناه.',
+      lookingUp: 'جارٍ البحث',
+      notFound: 'لم يتم العثور على المنتج.',
+      networkError: 'تعذر الوصول إلى قاعدة البيانات.',
+      unknownProduct: 'منتج غير معروف',
+      nutriscore: 'تقييم Nutri-score',
+      nova: 'NOVA',
+      energy: 'الطاقة',
+      sugars: 'السكر',
+      saturated: 'دهون مشبعة',
+      salt: 'الملح',
+      fibre: 'الألياف',
+      swapLabel: 'جرّب هذا بدلاً من ذلك',
+    },
+    zh: {
+      welcomeTitle: '用您的语言,发现更健康的食物。',
+      scanBarcode: '扫描条码',
+      enterCode: '输入条码',
+      lookup: '查询',
+      scanAnother: '再扫一个',
+      finishSession: '结束',
+      todaysScans: '今日扫描',
+      aligning: '正在对准相机…',
+      pointAtBarcode: '对准条码',
+      cameraUnavailable: '相机不可用',
+      useManualEntry: '请在下方手动输入条码。',
+      lookingUp: '正在查询',
+      notFound: '未找到该商品。',
+      networkError: '无法访问食品数据库。',
+      unknownProduct: '未知商品',
+      nutriscore: '营养评分',
+      nova: 'NOVA',
+      energy: '能量',
+      sugars: '糖',
+      saturated: '饱和脂肪',
+      salt: '盐',
+      fibre: '膳食纤维',
+      swapLabel: '试试这个',
+    },
+    hi: {
+      welcomeTitle: 'अपनी भाषा में स्वस्थ भोजन खोजें।',
+      scanBarcode: 'बारकोड स्कैन करें',
+      enterCode: 'कोड दर्ज करें',
+      lookup: 'खोजें',
+      scanAnother: 'दूसरा स्कैन करें',
+      finishSession: 'सत्र समाप्त करें',
+      todaysScans: 'आज के स्कैन',
+      aligning: 'कैमरा संरेखित कर रहा है…',
+      pointAtBarcode: 'बारकोड पर इंगित करें',
+      cameraUnavailable: 'कैमरा उपलब्ध नहीं',
+      useManualEntry: 'नीचे मैन्युअल रूप से कोड दर्ज करें।',
+      lookingUp: 'खोज रहा है',
+      notFound: 'उत्पाद नहीं मिला।',
+      networkError: 'डेटाबेस तक नहीं पहुँच सका।',
+      unknownProduct: 'अज्ञात उत्पाद',
+      nutriscore: 'न्यूट्री-स्कोर',
+      nova: 'NOVA',
+      energy: 'ऊर्जा',
+      sugars: 'शर्करा',
+      saturated: 'संतृप्त वसा',
+      salt: 'नमक',
+      fibre: 'फाइबर',
+      swapLabel: 'इसके बजाय यह आज़माएँ',
+    },
+  },
+  swaps: {
+    // keyed by Open Food Facts category tag (without language prefix)
+    'sugary-snacks': {
+      en: 'A handful of unsalted almonds or fresh fruit gives steady energy without the sugar crash.',
+      es: 'Un puñado de almendras sin sal o fruta fresca da energía sin el bajón de azúcar.',
+      vi: 'Một nắm hạnh nhân không muối hoặc trái cây tươi cho năng lượng ổn định.',
+      ar: 'حفنة من اللوز غير المملح أو الفاكهة الطازجة تمنحك طاقة ثابتة.',
+      zh: '一小把无盐杏仁或新鲜水果可提供稳定能量,避免血糖骤降。',
+      hi: 'मुट्ठी भर बिना नमक के बादाम या ताज़ा फल लें — स्थिर ऊर्जा देंगे।',
+    },
+    'sugared-beverages': {
+      en: 'Sparkling water with a squeeze of lime gives the fizz without the sugar.',
+      es: 'Agua con gas y un toque de lima — burbujas sin azúcar.',
+      vi: 'Nước có ga với một lát chanh — sảng khoái mà không có đường.',
+      ar: 'مياه فوارة مع شريحة ليمون — نفس النكهة بدون سكر.',
+      zh: '气泡水加一片青柠 — 同样清爽,没有糖分。',
+      hi: 'सोडा पानी में नींबू निचोड़ें — बिना चीनी का ताज़गी भरा विकल्प।',
+    },
+    'breakfast-cereals': {
+      en: 'Plain oats with cinnamon and fruit beat sugary cereal — slow energy that lasts till lunch.',
+      es: 'Avena con canela y fruta — energía que dura hasta la comida.',
+      vi: 'Yến mạch nguyên chất với quế và trái cây — năng lượng kéo dài tới trưa.',
+      ar: 'شوفان مع قرفة وفاكهة — طاقة تدوم حتى الغداء.',
+      zh: '燕麦加肉桂和水果 — 持久能量直到午餐。',
+      hi: 'जई में दालचीनी और फल मिलाएँ — दोपहर तक ऊर्जा बनी रहती है।',
+    },
+    'salty-snacks': {
+      en: 'Roasted chickpeas or air-popped popcorn give the crunch with far less salt.',
+      es: 'Garbanzos tostados o palomitas sin grasa — el crujido sin tanta sal.',
+      vi: 'Đậu gà rang hoặc bỏng ngô không dầu — giòn mà ít muối hơn.',
+      ar: 'حمص محمص أو فشار بدون زيت — قرمشة بأقل ملح.',
+      zh: '烤鹰嘴豆或空气爆米花 — 同样酥脆,盐分少得多。',
+      hi: 'भुने हुए चने या बिना तेल का पॉपकॉर्न — कुरकुरापन कम नमक के साथ।',
+    },
+    __generic_unhealthy: {
+      en: 'This is ultra-processed. Look for an option with a Nutri-score of A or B if you can.',
+      es: 'Es un producto ultraprocesado. Busca uno con Nutri-score A o B si puedes.',
+      vi: 'Đây là sản phẩm siêu chế biến. Hãy tìm loại có Nutri-score A hoặc B.',
+      ar: 'هذا منتج فائق المعالجة. ابحث عن خيار بتقييم Nutri-score A أو B.',
+      zh: '此为超加工食品。如果可以,请选择 Nutri-score 为 A 或 B 的替代品。',
+      hi: 'यह अत्यधिक प्रसंस्कृत उत्पाद है। हो सके तो Nutri-score A या B वाला चुनें।',
+    },
+  }
+};
+</script>
+
+</body>
+</html>
