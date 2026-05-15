@@ -1,0 +1,1340 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Find Nearest Clinic</title>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,wght@0,400;0,500;0,600;1,400&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --ink: #0f1e2d;
+    --ink-soft: #4a5b6e;
+    --ink-faint: #8a99ab;
+    --cream: #f5f2eb;
+    --paper: #ffffff;
+    --teal: #0e7c75;
+    --teal-light: #e0f2f0;
+    --teal-dark: #0a5a55;
+    --coral: #e87056;
+    --coral-light: #fde9e3;
+    --gold: #d4a043;
+    --success: #2c9f6b;
+    --success-light: #e3f5ec;
+    --error: #d14545;
+    --error-light: #fae3e3;
+    --border: rgba(15, 30, 45, 0.12);
+    --border-strong: rgba(15, 30, 45, 0.2);
+    --shadow-sm: 0 2px 8px rgba(15, 30, 45, 0.06);
+    --shadow: 0 4px 20px rgba(15, 30, 45, 0.08);
+    --shadow-lg: 0 8px 32px rgba(15, 30, 45, 0.12);
+    --radius: 18px;
+    --radius-sm: 12px;
+    --radius-xs: 8px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Inter', sans-serif;
+    background: var(--cream);
+    color: var(--ink);
+    min-height: 100vh;
+    -webkit-font-smoothing: antialiased;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  body::before {
+    content: '';
+    position: fixed;
+    top: -150px;
+    left: -100px;
+    width: 360px;
+    height: 360px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(14, 124, 117, 0.1) 0%, transparent 70%);
+    pointer-events: none;
+    z-index: 0;
+  }
+  body::after {
+    content: '';
+    position: fixed;
+    bottom: -120px;
+    right: -100px;
+    width: 320px;
+    height: 320px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(232, 112, 86, 0.08) 0%, transparent 70%);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .app {
+    max-width: 480px;
+    margin: 0 auto;
+    padding: 32px 16px 60px;
+    position: relative;
+    z-index: 1;
+  }
+
+  /* Cogniss already provides a close button in the header bar — we don't need our own */
+  .close-btn { display: none; }
+
+  /* Header */
+  .header {
+    text-align: center;
+    margin-bottom: 28px;
+    animation: fadeDown 0.5s ease both;
+  }
+  .header-icon {
+    width: 64px; height: 64px;
+    background: var(--teal);
+    border-radius: 20px;
+    display: flex; align-items: center; justify-content: center;
+    margin: 0 auto 18px;
+    box-shadow: 0 6px 20px rgba(14, 124, 117, 0.3);
+    position: relative;
+  }
+  .header-icon::after {
+    content: '';
+    position: absolute;
+    inset: -4px;
+    border: 1.5px solid var(--teal);
+    border-radius: 22px;
+    opacity: 0.25;
+  }
+  .header-icon svg { width: 30px; height: 30px; fill: var(--paper); }
+  .header h1 {
+    font-family: 'Fraunces', serif;
+    font-weight: 500;
+    font-size: 30px;
+    color: var(--ink);
+    letter-spacing: -0.5px;
+    line-height: 1.1;
+  }
+  .header p {
+    margin-top: 8px;
+    font-size: 14px;
+    color: var(--ink-soft);
+    font-weight: 400;
+    line-height: 1.5;
+  }
+
+  /* Tabs */
+  .tab-nav {
+    display: flex; gap: 4px;
+    background: var(--paper);
+    border-radius: var(--radius-sm);
+    padding: 4px;
+    margin-bottom: 20px;
+    box-shadow: var(--shadow-sm);
+    border: 1px solid var(--border);
+  }
+  .tab-btn {
+    flex: 1; padding: 11px; border: none;
+    border-radius: var(--radius-xs);
+    font-family: 'Inter', sans-serif;
+    font-size: 13px; font-weight: 600;
+    cursor: pointer;
+    background: none; color: var(--ink-soft);
+    transition: all 0.15s;
+    letter-spacing: 0.1px;
+  }
+  .tab-btn.active {
+    background: var(--ink);
+    color: var(--paper);
+  }
+
+  /* Cards */
+  .card {
+    background: var(--paper);
+    border-radius: var(--radius);
+    padding: 22px 18px;
+    box-shadow: var(--shadow);
+    margin-bottom: 16px;
+    border: 1px solid var(--border);
+    animation: fadeUp 0.4s ease both;
+  }
+  .card-title {
+    font-size: 11px; font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1.2px;
+    color: var(--ink-faint);
+    margin-bottom: 14px;
+  }
+  .card-helper {
+    font-size: 13px; color: var(--ink-soft);
+    margin-bottom: 18px; line-height: 1.5;
+  }
+
+  /* Input */
+  .input-row {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    width: 100%;
+  }
+  .input {
+    width: 100%;
+    height: 52px;
+    padding: 0 16px;
+    border: 1.5px solid var(--border-strong);
+    border-radius: var(--radius-sm);
+    font-family: 'Inter', sans-serif;
+    font-size: 16px; font-weight: 500;
+    color: var(--ink);
+    background: var(--paper);
+    outline: none;
+    transition: all 0.15s;
+    letter-spacing: 0.3px;
+  }
+  .input:focus { border-color: var(--teal); box-shadow: 0 0 0 3px rgba(14, 124, 117, 0.12); }
+  .input::placeholder { color: var(--ink-faint); font-weight: 400; }
+
+  .input-row .btn {
+    width: 100%;
+  }
+
+  /* Buttons */
+  .btn {
+    height: 52px; padding: 0 22px;
+    border: none; border-radius: var(--radius-sm);
+    font-family: 'Inter', sans-serif;
+    font-size: 15px; font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s;
+    display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+    white-space: nowrap;
+  }
+  .btn-primary {
+    background: var(--teal); color: var(--paper);
+    box-shadow: 0 4px 14px rgba(14, 124, 117, 0.3);
+  }
+  .btn-primary:hover, .btn-primary:active {
+    background: var(--teal-dark); transform: translateY(-1px);
+    box-shadow: 0 6px 18px rgba(14, 124, 117, 0.4);
+  }
+  .btn-primary:disabled {
+    background: var(--ink-faint); cursor: not-allowed; transform: none;
+    box-shadow: none; opacity: 0.6;
+  }
+  .btn-secondary {
+    background: var(--cream); color: var(--ink);
+    border: 1.5px solid var(--border-strong);
+  }
+  .btn-secondary:hover, .btn-secondary:active {
+    background: var(--paper); border-color: var(--ink);
+  }
+  .btn-full { width: 100%; }
+  .btn-sm { height: 40px; padding: 0 14px; font-size: 13px; }
+
+  /* Search hint */
+  .search-hint {
+    margin-top: 14px; padding: 12px 14px;
+    background: var(--teal-light);
+    border-radius: var(--radius-xs);
+    font-size: 12px; color: var(--teal-dark);
+    line-height: 1.5;
+    display: flex; align-items: flex-start; gap: 8px;
+  }
+  .search-hint-icon { flex-shrink: 0; margin-top: 1px; }
+
+  /* Results list */
+  .results-meta {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 12px;
+    padding: 0 4px;
+  }
+  .results-count {
+    font-size: 12px; font-weight: 600;
+    color: var(--ink-soft);
+    letter-spacing: 0.3px;
+    text-transform: uppercase;
+  }
+  .results-location {
+    font-size: 12px; color: var(--ink-faint);
+    font-weight: 500;
+  }
+
+  .clinic-list { display: flex; flex-direction: column; gap: 12px; }
+
+  .clinic-card {
+    background: var(--paper);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 18px;
+    box-shadow: var(--shadow-sm);
+    animation: fadeUp 0.4s ease both;
+  }
+  .clinic-header {
+    display: flex; align-items: flex-start; gap: 12px;
+    margin-bottom: 12px;
+  }
+  .clinic-marker {
+    width: 38px; height: 38px;
+    border-radius: 12px;
+    background: var(--teal-light);
+    color: var(--teal-dark);
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+    font-size: 16px;
+  }
+  .clinic-info { flex: 1; min-width: 0; }
+  .clinic-name {
+    font-family: 'Fraunces', serif;
+    font-weight: 500;
+    font-size: 17px;
+    color: var(--ink);
+    line-height: 1.25;
+    margin-bottom: 4px;
+  }
+  .clinic-meta {
+    display: flex; align-items: center; gap: 8px;
+    flex-wrap: wrap;
+  }
+  .clinic-distance {
+    display: inline-flex; align-items: center; gap: 4px;
+    font-size: 12px; font-weight: 600;
+    color: var(--teal-dark);
+    background: var(--teal-light);
+    padding: 3px 8px;
+    border-radius: 6px;
+    letter-spacing: 0.2px;
+  }
+  .clinic-tag {
+    font-size: 11px; font-weight: 500;
+    color: var(--ink-soft);
+    background: var(--cream);
+    padding: 3px 8px;
+    border-radius: 6px;
+    letter-spacing: 0.2px;
+  }
+  .clinic-address {
+    font-size: 13px;
+    color: var(--ink-soft);
+    line-height: 1.5;
+    margin-bottom: 14px;
+    padding-left: 50px;
+  }
+  .clinic-actions {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    padding-top: 14px;
+    border-top: 1px solid var(--border);
+  }
+  .clinic-actions.with-call {
+    grid-template-columns: 1fr 1fr 1fr;
+  }
+  .action-btn {
+    height: 44px;
+    border: 1.5px solid var(--border-strong);
+    border-radius: var(--radius-xs);
+    background: var(--paper);
+    font-family: 'Inter', sans-serif;
+    font-size: 13px; font-weight: 600;
+    color: var(--ink);
+    cursor: pointer;
+    display: inline-flex; align-items: center; justify-content: center; gap: 5px;
+    transition: all 0.15s;
+    padding: 0 8px;
+  }
+  .action-btn:hover, .action-btn:active {
+    background: var(--ink); color: var(--paper); border-color: var(--ink);
+  }
+  .action-btn svg { width: 14px; height: 14px; }
+  .action-btn.call { color: var(--teal-dark); border-color: var(--teal); }
+  .action-btn.call:hover, .action-btn.call:active {
+    background: var(--teal); color: var(--paper);
+  }
+
+  /* Empty / Error state */
+  .state-empty {
+    text-align: center; padding: 40px 20px;
+    background: var(--paper);
+    border-radius: var(--radius);
+    border: 1px dashed var(--border-strong);
+  }
+  .state-empty-icon {
+    font-size: 38px; margin-bottom: 12px; opacity: 0.4;
+  }
+  .state-empty h3 {
+    font-family: 'Fraunces', serif;
+    font-weight: 500;
+    font-size: 18px; color: var(--ink);
+    margin-bottom: 8px;
+  }
+  .state-empty p {
+    font-size: 13px; color: var(--ink-soft);
+    line-height: 1.5; max-width: 280px; margin: 0 auto;
+  }
+
+  /* Loading */
+  .loading-state {
+    text-align: center; padding: 40px 20px;
+    display: flex; flex-direction: column; align-items: center; gap: 14px;
+  }
+  .spinner {
+    width: 36px; height: 36px;
+    border: 3px solid var(--border);
+    border-top-color: var(--teal);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+  }
+  .loading-state p {
+    font-size: 13px; color: var(--ink-soft);
+  }
+
+  /* Banner */
+  .banner-info {
+    background: linear-gradient(135deg, var(--coral-light), #fdf3e8);
+    border: 1px solid rgba(232, 112, 86, 0.2);
+    border-radius: var(--radius-sm);
+    padding: 14px 16px;
+    margin-bottom: 16px;
+    display: flex; align-items: flex-start; gap: 12px;
+  }
+  .banner-info-icon {
+    font-size: 18px; flex-shrink: 0; margin-top: 1px;
+  }
+  .banner-info-text {
+    font-size: 12px; color: #8a3d28;
+    line-height: 1.5;
+  }
+  .banner-info-text strong { color: #6d2f1f; font-weight: 600; }
+
+  /* Footer action */
+  .footer-action {
+    margin-top: 20px;
+    display: flex; flex-direction: column; gap: 8px;
+  }
+
+  /* Saved */
+  .saved-empty { padding: 32px 20px; }
+
+  /* Screens */
+  .screen { display: none; }
+  .screen.active { display: block; animation: fadeUp 0.35s ease both; }
+  #screen-loading.active {
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    min-height: 70vh; gap: 16px;
+  }
+
+  /* Animations */
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes fadeDown {
+    from { opacity: 0; transform: translateY(-8px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes spin {
+    to { transform: rotate(360deg); }
+  }
+
+  /* Stagger animation for clinic cards */
+  .clinic-card:nth-child(1) { animation-delay: 0.02s; }
+  .clinic-card:nth-child(2) { animation-delay: 0.06s; }
+  .clinic-card:nth-child(3) { animation-delay: 0.1s; }
+  .clinic-card:nth-child(4) { animation-delay: 0.14s; }
+  .clinic-card:nth-child(5) { animation-delay: 0.18s; }
+  .clinic-card:nth-child(n+6) { animation-delay: 0.22s; }
+</style>
+</head>
+<body>
+
+<button class="close-btn" onclick="finishActivity()" aria-label="Close">✕</button>
+
+<div class="app">
+
+  <!-- LOADING SCREEN -->
+  <div id="screen-loading" class="screen active">
+    <div class="spinner"></div>
+    <p style="font-size:13px;color:var(--ink-soft);">Loading…</p>
+  </div>
+
+  <!-- SEARCH SCREEN -->
+  <div id="screen-search" class="screen">
+    <div class="header">
+      <div class="header-icon">
+        <svg viewBox="0 0 24 24"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5a2.5 2.5 0 0 1 0-5 2.5 2.5 0 0 1 0 5z"/></svg>
+      </div>
+      <h1 id="title">Find a Clinic Near You</h1>
+      <p id="subtitle">Enter your postcode to find the closest clinics</p>
+    </div>
+
+    <!-- Tabs -->
+    <div class="tab-nav">
+      <button class="tab-btn active" data-tab="search">Search</button>
+      <button class="tab-btn" data-tab="saved">Saved</button>
+    </div>
+
+    <!-- Search tab -->
+    <div id="tab-search" class="tab-panel">
+      <div class="card">
+        <div class="card-title">Your Location</div>
+        <p class="card-helper">Type your postcode or suburb. We'll find the nearest clinics within <span id="radius-label">10</span> km.</p>
+        <div class="input-row">
+          <input id="postcode-input" class="input" type="text" placeholder="e.g. 2000" autocomplete="postal-code" inputmode="text" />
+          <button id="search-btn" class="btn btn-primary" onclick="onSearch()">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right:2px;"><circle cx="11" cy="11" r="7"></circle><line x1="21" y1="21" x2="16.5" y2="16.5"></line></svg>
+            Find clinics
+          </button>
+        </div>
+        <div class="search-hint">
+          <span class="search-hint-icon">💡</span>
+          <span>Tip — you can also enter a suburb name like "Bondi" or "Carlton".</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Saved tab -->
+    <div id="tab-saved" class="tab-panel" style="display:none;">
+      <div id="saved-container"></div>
+    </div>
+  </div>
+
+  <!-- RESULTS SCREEN -->
+  <div id="screen-results" class="screen">
+    <button class="btn btn-secondary btn-sm" onclick="backToSearch()" style="margin-bottom: 16px;">
+      ← New search
+    </button>
+
+    <div class="results-meta">
+      <span class="results-count" id="results-count">— results</span>
+      <span class="results-location" id="results-location">—</span>
+    </div>
+
+    <div id="results-container"></div>
+  </div>
+
+  <!-- SEARCHING STATE -->
+  <div id="screen-searching" class="screen">
+    <div class="loading-state">
+      <div class="spinner"></div>
+      <p id="searching-text">Searching for clinics near you…</p>
+    </div>
+  </div>
+
+</div>
+
+<script>
+  // ============================================================
+  // Cogniss bridge
+  // ============================================================
+  const isNative = typeof window.ReactNativeWebView !== 'undefined'
+
+  function postToApp(key, data = null) {
+    const text = JSON.stringify({ key, data })
+    if (isNative) {
+      window.ReactNativeWebView.postMessage(text)
+    } else if (window.parent !== window) {
+      window.parent.postMessage(text, '*')
+    } else {
+      console.log('[postToApp - standalone mode]', key, data)
+    }
+  }
+
+  const state = {
+    USER: null,
+    AUTH: null,
+    API: null,
+    ACTIVITY: null,
+    ACTIVITY_RESPONSE: null,
+    CONFIG: null,
+    QUESTIONS: [],
+    initialized: false,
+    saved: []
+  }
+
+  const REQUIRED = ['USER', 'AUTH', 'API', 'ACTIVITY', 'ACTIVITY_RESPONSE', 'CONFIG']
+
+  function handleMsg(msg) {
+    if (!msg || !msg.key) return
+    switch (msg.key) {
+      case 'API':
+      case 'USER':
+      case 'AUTH':
+      case 'ACTIVITY':
+      case 'ACTIVITY_RESPONSE':
+      case 'CONFIG':
+        state[msg.key] = msg.data
+        break
+      case 'QUESTIONS':
+        state.QUESTIONS = msg.data || []
+        break
+      case 'REQUEST_RESPONSE':
+        handleRestResponse(msg)
+        break
+      default: break
+    }
+    maybeInit()
+  }
+
+  function onIncoming(e) {
+    try { handleMsg(JSON.parse(e.data)) } catch (err) {}
+  }
+  document.addEventListener('message', onIncoming)
+  window.addEventListener('message', onIncoming)
+
+  function maybeInit() {
+    if (state.initialized) return
+    if (REQUIRED.every(k => state[k] !== null)) {
+      state.initialized = true
+      initApp()
+    }
+  }
+
+  // Send ready signal once page is loaded
+  window.addEventListener('load', () => {
+    postToApp('READY_DYNAMIC_MEDIA')
+
+    // Standalone fallback: if no Cogniss bridge after 2.5s, init with mock data
+    setTimeout(() => {
+      if (!state.initialized) {
+        console.log('[standalone] Initialising with mock state')
+        state.USER = { displayName: 'Test User', email: '', profile: {} }
+        state.AUTH = ''
+        state.API = ''
+        state.ACTIVITY = { id: 'demo' }
+        state.ACTIVITY_RESPONSE = { id: 'demo' }
+        state.CONFIG = {}
+        maybeInit()
+      }
+    }, 2500)
+  })
+
+  // ============================================================
+  // REST helpers
+  // ============================================================
+  const pending = {}
+  let reqId = 0
+
+  function rest(method, model, data, specialParams) {
+    return new Promise((resolve, reject) => {
+      const id = 'r' + (++reqId)
+      pending[id] = { resolve, reject }
+      postToApp('REST_REQUEST', { method, model, data, id, specialParams: specialParams || null })
+      // Safety timeout
+      setTimeout(() => {
+        if (pending[id]) {
+          delete pending[id]
+          reject(new Error('REST timeout'))
+        }
+      }, 15000)
+    })
+  }
+
+  function handleRestResponse(msg) {
+    const p = pending[msg.id]
+    if (!p) return
+    delete pending[msg.id]
+    if (msg.error) p.reject(new Error(msg.error))
+    else p.resolve(msg.data)
+  }
+
+  // ============================================================
+  // Config (read from activity.customConfig)
+  // ============================================================
+  function getConfig() {
+    const c = state.CONFIG || {}
+    return {
+      title: c.title || 'Find a Clinic Near You',
+      subtitle: c.subtitle || 'Enter your postcode to find the closest clinics',
+      // OSM tag filter — examples:
+      //   'clinic'                 → amenity=clinic OR healthcare=clinic
+      //   'doctors'                → amenity=doctors OR healthcare=doctor
+      //   'hospital'               → amenity=hospital
+      //   'pharmacy'               → amenity=pharmacy
+      //   'dentist'                → amenity=dentist
+      //   'endocrinology'          → healthcare:speciality=endocrinology
+      //   'physiotherapist'        → healthcare=physiotherapist
+      //   'mental_health'          → healthcare=psychotherapist (and similar)
+      // Use an array of strings to combine multiple types in one search.
+      clinicTypes: Array.isArray(c.clinicTypes) ? c.clinicTypes
+                 : c.clinicType ? [c.clinicType]
+                 : ['clinic', 'doctors'],
+      searchRadiusKm: typeof c.searchRadiusKm === 'number' ? c.searchRadiusKm : 10,
+      maxResults: typeof c.maxResults === 'number' ? c.maxResults : 20,
+      // Country hint for postcode geocoding (ISO 3166-1 alpha-2: "AU", "GB", "US", "CA", "NZ", etc.)
+      countryCode: c.countryCode || 'AU',
+      // Optional intro banner for the user
+      banner: c.banner || null
+    }
+  }
+
+  // ============================================================
+  // App init
+  // ============================================================
+  function initApp() {
+    const cfg = getConfig()
+
+    document.getElementById('title').textContent = cfg.title
+    document.getElementById('subtitle').textContent = cfg.subtitle
+    document.getElementById('radius-label').textContent = cfg.searchRadiusKm
+
+    // Wire tabs
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+      btn.addEventListener('click', () => switchTab(btn.dataset.tab))
+    })
+
+    // Enter key submits search
+    const postcodeInput = document.getElementById('postcode-input')
+    postcodeInput.addEventListener('keydown', e => {
+      if (e.key === 'Enter') { e.preventDefault(); onSearch() }
+    })
+
+    // Make external link clicks open natively on mobile
+    document.addEventListener('click', e => {
+      const link = e.target.closest('a[href]')
+      if (link && link.href && !link.href.startsWith('javascript:')) {
+        link.setAttribute('target', '_blank')
+      }
+    })
+
+    showScreen('screen-search')
+
+    // Load saved searches in the background
+    loadSavedSearches()
+  }
+
+  // ============================================================
+  // Screen / tab management
+  // ============================================================
+  function showScreen(id) {
+    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'))
+    const el = document.getElementById(id)
+    el.classList.add('active')
+    window.scrollTo(0, 0)
+  }
+
+  function switchTab(name) {
+    document.querySelectorAll('.tab-btn').forEach(b => {
+      b.classList.toggle('active', b.dataset.tab === name)
+    })
+    document.getElementById('tab-search').style.display = name === 'search' ? '' : 'none'
+    document.getElementById('tab-saved').style.display = name === 'saved' ? '' : 'none'
+    if (name === 'saved') renderSaved()
+  }
+
+  function backToSearch() {
+    showScreen('screen-search')
+  }
+
+  // ============================================================
+  // Search flow
+  // ============================================================
+  async function onSearch() {
+    const cfg = getConfig()
+    const raw = document.getElementById('postcode-input').value.trim()
+    if (!raw) {
+      const inp = document.getElementById('postcode-input')
+      inp.style.borderColor = 'var(--error)'
+      inp.focus()
+      setTimeout(() => { inp.style.borderColor = '' }, 1500)
+      return
+    }
+
+    showScreen('screen-searching')
+    document.getElementById('searching-text').textContent = `Looking up "${raw}"…`
+
+    // 1. Geocode the postcode/suburb
+    let loc = null
+    try {
+      loc = await geocode(raw, cfg.countryCode)
+    } catch (err) {
+      console.error('[geocode]', err)
+      showErrorResults(raw, `Couldn't reach the location lookup service. This is sometimes a network or CORS issue. (${err.message || err})`, 'geocode')
+      return
+    }
+
+    if (!loc) {
+      showErrorResults(raw, "We couldn't find that postcode or location. Please double-check the spelling, or try a nearby suburb or postcode.", 'notfound')
+      return
+    }
+
+    document.getElementById('searching-text').textContent = `Searching near ${loc.label}…`
+
+    // 2. Find clinics nearby
+    let clinics = []
+    try {
+      clinics = await findClinics(loc.lat, loc.lng, cfg.searchRadiusKm, cfg.clinicTypes, cfg.maxResults)
+    } catch (err) {
+      console.error('[overpass]', err)
+      showErrorResults(loc.label, `Found your location but couldn't load the clinic list. The map data service may be busy — please try again in a moment. (${err.message || err})`, 'overpass')
+      return
+    }
+
+    // 3. Render results
+    renderResults(loc, clinics)
+  }
+
+  // ============================================================
+  // Resilient fetch with timeout
+  // ============================================================
+  async function fetchWithTimeout(url, options, ms = 12000) {
+    const ctrl = (typeof AbortController !== 'undefined') ? new AbortController() : null
+    const id = ctrl ? setTimeout(() => ctrl.abort(), ms) : null
+    try {
+      const res = await fetch(url, { ...(options || {}), signal: ctrl ? ctrl.signal : undefined })
+      if (id) clearTimeout(id)
+      return res
+    } catch (err) {
+      if (id) clearTimeout(id)
+      if (err.name === 'AbortError') throw new Error('Request timed out')
+      throw err
+    }
+  }
+
+  // ============================================================
+  // Geocoding — tries Nominatim, then Photon as a fallback
+  // ============================================================
+  async function geocode(query, countryCode) {
+    let lastErr = null
+
+    // ---- Try Nominatim first (best for postcodes) ----
+    try {
+      const params = new URLSearchParams({
+        q: query, format: 'json', addressdetails: '1', limit: '1'
+      })
+      if (countryCode) params.set('countrycodes', countryCode.toLowerCase())
+      const url = `https://nominatim.openstreetmap.org/search?${params.toString()}`
+      const res = await fetchWithTimeout(url, {}, 10000)
+      if (res.ok) {
+        const data = await res.json()
+        if (data && data.length) {
+          const hit = data[0]
+          const addr = hit.address || {}
+          const labelParts = [
+            addr.suburb || addr.town || addr.city || addr.village || addr.locality,
+            addr.state || addr.region,
+            addr.postcode
+          ].filter(Boolean)
+          return {
+            lat: parseFloat(hit.lat),
+            lng: parseFloat(hit.lon),
+            label: labelParts.join(', ') || (hit.display_name || '').split(',').slice(0, 2).join(',').trim() || query
+          }
+        }
+        // Nominatim returned empty results — try Photon before giving up
+      } else {
+        lastErr = new Error('Nominatim ' + res.status)
+      }
+    } catch (err) {
+      lastErr = err
+      console.warn('[geocode nominatim]', err)
+    }
+
+    // ---- Fallback: Photon (Komoot) — also free, CORS-friendly ----
+    try {
+      const params = new URLSearchParams({ q: query, limit: '1' })
+      if (countryCode) params.set('lang', 'en')
+      const url = `https://photon.komoot.io/api/?${params.toString()}`
+      const res = await fetchWithTimeout(url, {}, 10000)
+      if (!res.ok) throw new Error('Photon ' + res.status)
+      const data = await res.json()
+      const feat = data && data.features && data.features[0]
+      if (!feat) return null
+      const [lng, lat] = feat.geometry.coordinates
+      const p = feat.properties || {}
+      // If a country code was requested, ensure the result is in that country
+      if (countryCode && p.countrycode && p.countrycode.toLowerCase() !== countryCode.toLowerCase()) {
+        return null
+      }
+      const labelParts = [p.city || p.locality || p.name, p.state, p.postcode].filter(Boolean)
+      return {
+        lat,
+        lng,
+        label: labelParts.join(', ') || p.name || query
+      }
+    } catch (err) {
+      console.warn('[geocode photon]', err)
+      lastErr = err
+    }
+
+    // Both failed
+    if (lastErr) throw lastErr
+    return null
+  }
+
+  // ============================================================
+  // Find clinics (Overpass API — OpenStreetMap)
+  // ============================================================
+  async function findClinics(lat, lng, radiusKm, types, maxResults) {
+    const radiusM = Math.round(radiusKm * 1000)
+
+    const filters = []
+    types.forEach(type => {
+      const t = String(type).toLowerCase().trim()
+      if (t === 'endocrinology' || t === 'endo' || t === 'endocrinologist') {
+        filters.push(`node["healthcare:speciality"~"endocrinology"](around:${radiusM},${lat},${lng});`)
+        filters.push(`way["healthcare:speciality"~"endocrinology"](around:${radiusM},${lat},${lng});`)
+      } else if (t === 'mental_health' || t === 'psychologist' || t === 'psychiatrist') {
+        filters.push(`node["healthcare"~"psychotherapist|psychiatrist"](around:${radiusM},${lat},${lng});`)
+        filters.push(`way["healthcare"~"psychotherapist|psychiatrist"](around:${radiusM},${lat},${lng});`)
+      } else {
+        const amenityMap = {
+          'clinic': 'clinic', 'doctors': 'doctors', 'doctor': 'doctors',
+          'hospital': 'hospital', 'pharmacy': 'pharmacy', 'dentist': 'dentist'
+        }
+        const healthcareMap = {
+          'clinic': 'clinic', 'doctors': 'doctor', 'doctor': 'doctor',
+          'hospital': 'hospital', 'pharmacy': 'pharmacy', 'dentist': 'dentist',
+          'physiotherapist': 'physiotherapist', 'optometrist': 'optometrist'
+        }
+        if (amenityMap[t]) {
+          filters.push(`node["amenity"="${amenityMap[t]}"](around:${radiusM},${lat},${lng});`)
+          filters.push(`way["amenity"="${amenityMap[t]}"](around:${radiusM},${lat},${lng});`)
+        }
+        if (healthcareMap[t]) {
+          filters.push(`node["healthcare"="${healthcareMap[t]}"](around:${radiusM},${lat},${lng});`)
+          filters.push(`way["healthcare"="${healthcareMap[t]}"](around:${radiusM},${lat},${lng});`)
+        }
+      }
+    })
+
+    if (!filters.length) return []
+
+    const query = `[out:json][timeout:25];(${filters.join('')});out center tags;`
+
+    // Try multiple Overpass endpoints. They are public mirrors of the same data;
+    // when one is rate-limited or slow, another usually answers.
+    const endpoints = [
+      'https://overpass-api.de/api/interpreter',
+      'https://overpass.kumi.systems/api/interpreter',
+      'https://overpass.openstreetmap.fr/api/interpreter'
+    ]
+
+    let data = null
+    let lastErr = null
+    for (const ep of endpoints) {
+      try {
+        const res = await fetchWithTimeout(ep, {
+          method: 'POST',
+          body: 'data=' + encodeURIComponent(query)
+        }, 15000)
+        if (!res.ok) { lastErr = new Error(`${ep.split('/')[2]} ${res.status}`); continue }
+        data = await res.json()
+        break
+      } catch (err) {
+        lastErr = err
+        console.warn('[overpass]', ep, err.message || err)
+      }
+    }
+    if (!data) throw lastErr || new Error('All Overpass mirrors unreachable')
+
+    const elements = data.elements || []
+
+    // Map to clinic objects, compute distance
+    const seen = new Set()
+    const clinics = []
+    for (const el of elements) {
+      const tags = el.tags || {}
+      const name = tags.name || tags['name:en'] || tags['short_name']
+      if (!name) continue
+
+      const elat = el.lat != null ? el.lat : (el.center && el.center.lat)
+      const elng = el.lon != null ? el.lon : (el.center && el.center.lon)
+      if (elat == null || elng == null) continue
+
+      const key = name.toLowerCase() + '|' + Math.round(elat * 10000) + '|' + Math.round(elng * 10000)
+      if (seen.has(key)) continue
+      seen.add(key)
+
+      clinics.push({
+        id: el.type + '/' + el.id,
+        name,
+        lat: elat,
+        lng: elng,
+        distanceKm: haversine(lat, lng, elat, elng),
+        address: formatAddress(tags),
+        phone: tags['contact:phone'] || tags.phone || null,
+        website: tags['contact:website'] || tags.website || null,
+        speciality: tags['healthcare:speciality'] || null,
+        kind: tags.healthcare || tags.amenity || 'clinic',
+        openingHours: tags.opening_hours || null
+      })
+    }
+
+    clinics.sort((a, b) => a.distanceKm - b.distanceKm)
+    return clinics.slice(0, maxResults)
+  }
+
+  function formatAddress(tags) {
+    const parts = [
+      [tags['addr:housenumber'], tags['addr:street']].filter(Boolean).join(' '),
+      tags['addr:suburb'] || tags['addr:city'],
+      tags['addr:state'],
+      tags['addr:postcode']
+    ].filter(Boolean)
+    return parts.length ? parts.join(', ') : null
+  }
+
+  function haversine(lat1, lng1, lat2, lng2) {
+    const R = 6371
+    const toRad = d => d * Math.PI / 180
+    const dLat = toRad(lat2 - lat1)
+    const dLng = toRad(lng2 - lng1)
+    const a = Math.sin(dLat / 2) ** 2 +
+              Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) *
+              Math.sin(dLng / 2) ** 2
+    return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
+  }
+
+  // ============================================================
+  // Render results
+  // ============================================================
+  function renderResults(location, clinics) {
+    document.getElementById('results-location').textContent = location.label
+    document.getElementById('results-count').textContent =
+      clinics.length === 0 ? '0 results' :
+      clinics.length === 1 ? '1 clinic found' :
+      `${clinics.length} clinics found`
+
+    const container = document.getElementById('results-container')
+
+    if (clinics.length === 0) {
+      const cfg = getConfig()
+      container.innerHTML = `
+        <div class="state-empty">
+          <div class="state-empty-icon">🔍</div>
+          <h3>No clinics found nearby</h3>
+          <p>We couldn't find any matching clinics within ${cfg.searchRadiusKm} km of ${escapeHtml(location.label)}. Try a different postcode or contact your healthcare provider for recommendations.</p>
+        </div>
+      `
+      showScreen('screen-results')
+      return
+    }
+
+    container.innerHTML = clinics.map(c => renderClinicCard(c, location)).join('')
+    showScreen('screen-results')
+  }
+
+  function showErrorResults(input, message, kind) {
+    document.getElementById('results-location').textContent = input
+    document.getElementById('results-count').textContent = 'No results'
+    const heading = kind === 'notfound' ? "We couldn't find that location"
+                  : kind === 'overpass' ? "Couldn't load clinic list"
+                  : kind === 'geocode'  ? "Couldn't reach lookup service"
+                  : "Something went wrong"
+    const icon = kind === 'notfound' ? '🔍' : '⚠️'
+    document.getElementById('results-container').innerHTML = `
+      <div class="state-empty">
+        <div class="state-empty-icon">${icon}</div>
+        <h3>${heading}</h3>
+        <p>${escapeHtml(message)}</p>
+        <div style="margin-top:18px; display:flex; gap:8px; justify-content:center; flex-wrap:wrap;">
+          <button class="btn btn-primary btn-sm" onclick="onSearch()">Try again</button>
+          <button class="btn btn-secondary btn-sm" onclick="backToSearch()">Edit location</button>
+        </div>
+      </div>
+    `
+    showScreen('screen-results')
+  }
+
+  function renderClinicCard(c, location) {
+    const distance = c.distanceKm < 1
+      ? Math.round(c.distanceKm * 1000) + ' m'
+      : c.distanceKm.toFixed(1) + ' km'
+    const kindLabel = formatKind(c.kind, c.speciality)
+    const hasCall = !!c.phone
+    const safeName = escapeHtml(c.name)
+
+    return `
+      <div class="clinic-card">
+        <div class="clinic-header">
+          <div class="clinic-marker">${iconForKind(c.kind)}</div>
+          <div class="clinic-info">
+            <div class="clinic-name">${safeName}</div>
+            <div class="clinic-meta">
+              <span class="clinic-distance">📍 ${distance}</span>
+              ${kindLabel ? `<span class="clinic-tag">${escapeHtml(kindLabel)}</span>` : ''}
+            </div>
+          </div>
+        </div>
+        ${c.address ? `<div class="clinic-address">${escapeHtml(c.address)}</div>` : ''}
+        <div class="clinic-actions${hasCall ? ' with-call' : ''}">
+          <button class="action-btn" onclick='openInGoogleMaps(${JSON.stringify(c)})'>
+            <span>🗺️</span> Google Maps
+          </button>
+          <button class="action-btn" onclick='openInAppleMaps(${JSON.stringify(c)})'>
+            <span>🧭</span> Apple Maps
+          </button>
+          ${hasCall ? `<button class="action-btn call" onclick='callClinic(${JSON.stringify(c.phone)})'><span>📞</span> Call</button>` : ''}
+        </div>
+        <div style="margin-top:8px; display:grid; grid-template-columns: 1fr; gap:8px;">
+          <button class="action-btn" onclick='saveClinic(${JSON.stringify({...c, savedFrom: location.label})})' style="height:38px;font-size:12px;color:var(--ink-soft);border-style:dashed;">
+            ☆ Save for later
+          </button>
+        </div>
+      </div>
+    `
+  }
+
+  function iconForKind(kind) {
+    const k = (kind || '').toLowerCase()
+    if (k.includes('hospital')) return '🏥'
+    if (k.includes('pharmacy')) return '💊'
+    if (k.includes('dentist')) return '🦷'
+    if (k.includes('physio')) return '🧘'
+    if (k.includes('optom')) return '👓'
+    return '⚕️'
+  }
+
+  function formatKind(kind, speciality) {
+    if (speciality) return titleCase(speciality.replace(/_/g, ' '))
+    if (!kind) return null
+    return titleCase(kind.replace(/_/g, ' '))
+  }
+
+  function titleCase(s) {
+    return s.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')
+  }
+
+  function escapeHtml(s) {
+    if (s == null) return ''
+    return String(s).replace(/[&<>"']/g, ch => ({
+      '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+    }[ch]))
+  }
+
+  // ============================================================
+  // Open in Maps (deep links)
+  // ============================================================
+  function openInGoogleMaps(c) {
+    // Universal Google Maps URL — opens app on Android, prompts on iOS, web on desktop
+    const url = `https://www.google.com/maps/search/?api=1&query=${c.lat},${c.lng}&query_place_id=${encodeURIComponent(c.name)}`
+    openExternalUrl(url)
+  }
+
+  function openInAppleMaps(c) {
+    // Apple Maps universal URL — opens app on iOS, opens Apple Maps web on others
+    const url = `https://maps.apple.com/?q=${encodeURIComponent(c.name)}&ll=${c.lat},${c.lng}`
+    openExternalUrl(url)
+  }
+
+  function callClinic(phone) {
+    if (!phone) return
+    const tel = String(phone).replace(/\s+/g, '')
+    openExternalUrl(`tel:${tel}`)
+  }
+
+  function openExternalUrl(url) {
+    // Create a transient anchor with target=_blank so the WebView hands off to the OS
+    const a = document.createElement('a')
+    a.href = url
+    a.target = '_blank'
+    a.rel = 'noopener'
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
+  }
+
+  // ============================================================
+  // Save / load (QUESTION_RESPONSE + bookmark)
+  // ============================================================
+  async function saveClinic(c) {
+    // Avoid duplicate saves
+    if (state.saved.some(s => s.id === c.id)) {
+      flashToast('Already saved')
+      return
+    }
+
+    const record = {
+      id: c.id,
+      name: c.name,
+      lat: c.lat,
+      lng: c.lng,
+      kind: c.kind,
+      speciality: c.speciality || null,
+      address: c.address || null,
+      phone: c.phone || null,
+      website: c.website || null,
+      savedFrom: c.savedFrom || null,
+      savedAt: new Date().toISOString()
+    }
+    state.saved.unshift(record)
+
+    // Persist to the activity bookmark (no QUIT needed)
+    try {
+      await rest('put', 'ActivityResponse', {
+        id: state.ACTIVITY_RESPONSE.id,
+        bookmark: JSON.stringify({ saved: state.saved }).slice(0, 4800)
+      })
+      flashToast('Saved ✓')
+    } catch (err) {
+      console.warn('Bookmark save failed', err)
+      flashToast('Saved locally')
+    }
+  }
+
+  async function loadSavedSearches() {
+    if (!state.ACTIVITY_RESPONSE || !state.ACTIVITY_RESPONSE.id) return
+
+    // 1. Try current attempt bookmark
+    try {
+      const current = await rest('get', 'ActivityResponse', state.ACTIVITY_RESPONSE.id)
+      if (current && current.bookmark) {
+        try {
+          const parsed = JSON.parse(current.bookmark)
+          if (parsed && Array.isArray(parsed.saved)) {
+            state.saved = parsed.saved
+          }
+        } catch {}
+      }
+    } catch (err) {
+      console.warn('Could not load current bookmark', err)
+    }
+
+    // 2. Also pull saved entries from previous completed attempts via QuestionResponse
+    try {
+      const list = await rest('list', 'ActivityResponse', {
+        user: state.USER.id,
+        activity: state.ACTIVITY.id,
+        complete: true,
+        sort: '-createdAt',
+        limit: 20
+      })
+      const items = (list && (list.items || list)) || []
+      const allBookmarks = []
+      for (const ar of items) {
+        if (ar.bookmark) {
+          try {
+            const parsed = JSON.parse(ar.bookmark)
+            if (parsed && Array.isArray(parsed.saved)) {
+              allBookmarks.push(...parsed.saved)
+            }
+          } catch {}
+        }
+      }
+      // Merge with current, dedupe by id
+      const seen = new Set(state.saved.map(s => s.id))
+      for (const s of allBookmarks) {
+        if (!seen.has(s.id)) { seen.add(s.id); state.saved.push(s) }
+      }
+    } catch (err) {
+      // Silent — not critical
+    }
+  }
+
+  function renderSaved() {
+    const container = document.getElementById('saved-container')
+    if (!state.saved.length) {
+      container.innerHTML = `
+        <div class="state-empty saved-empty">
+          <div class="state-empty-icon">☆</div>
+          <h3>No saved clinics yet</h3>
+          <p>Tap the "Save for later" button on any clinic to keep it here for quick access.</p>
+        </div>
+      `
+      return
+    }
+
+    container.innerHTML = `
+      <div class="results-meta">
+        <span class="results-count">${state.saved.length} saved</span>
+      </div>
+      <div class="clinic-list">
+        ${state.saved.map(c => renderSavedCard(c)).join('')}
+      </div>
+    `
+  }
+
+  function renderSavedCard(c) {
+    const kindLabel = formatKind(c.kind, c.speciality)
+    const hasCall = !!c.phone
+    return `
+      <div class="clinic-card">
+        <div class="clinic-header">
+          <div class="clinic-marker">${iconForKind(c.kind)}</div>
+          <div class="clinic-info">
+            <div class="clinic-name">${escapeHtml(c.name)}</div>
+            <div class="clinic-meta">
+              ${kindLabel ? `<span class="clinic-tag">${escapeHtml(kindLabel)}</span>` : ''}
+              ${c.savedFrom ? `<span class="clinic-tag">📍 from ${escapeHtml(c.savedFrom)}</span>` : ''}
+            </div>
+          </div>
+        </div>
+        ${c.address ? `<div class="clinic-address">${escapeHtml(c.address)}</div>` : ''}
+        <div class="clinic-actions${hasCall ? ' with-call' : ''}">
+          <button class="action-btn" onclick='openInGoogleMaps(${JSON.stringify(c)})'>
+            <span>🗺️</span> Google Maps
+          </button>
+          <button class="action-btn" onclick='openInAppleMaps(${JSON.stringify(c)})'>
+            <span>🧭</span> Apple Maps
+          </button>
+          ${hasCall ? `<button class="action-btn call" onclick='callClinic(${JSON.stringify(c.phone)})'><span>📞</span> Call</button>` : ''}
+        </div>
+        <div style="margin-top:8px;">
+          <button class="action-btn" onclick='removeSaved(${JSON.stringify(c.id)})' style="width:100%;height:38px;font-size:12px;color:var(--error);border-color:var(--error-light);">
+            Remove
+          </button>
+        </div>
+      </div>
+    `
+  }
+
+  async function removeSaved(id) {
+    state.saved = state.saved.filter(s => s.id !== id)
+    renderSaved()
+    try {
+      await rest('put', 'ActivityResponse', {
+        id: state.ACTIVITY_RESPONSE.id,
+        bookmark: JSON.stringify({ saved: state.saved }).slice(0, 4800)
+      })
+    } catch {}
+  }
+
+  // ============================================================
+  // Toast
+  // ============================================================
+  let toastTimer = null
+  function flashToast(text) {
+    let toast = document.getElementById('toast')
+    if (!toast) {
+      toast = document.createElement('div')
+      toast.id = 'toast'
+      toast.style.cssText = `
+        position: fixed; bottom: 28px; left: 50%; transform: translateX(-50%);
+        background: var(--ink); color: var(--paper);
+        padding: 12px 20px; border-radius: 999px;
+        font-size: 14px; font-weight: 500;
+        box-shadow: var(--shadow-lg);
+        z-index: 1000; opacity: 0; transition: opacity 0.2s, transform 0.2s;
+      `
+      document.body.appendChild(toast)
+    }
+    toast.textContent = text
+    requestAnimationFrame(() => {
+      toast.style.opacity = '1'
+      toast.style.transform = 'translateX(-50%) translateY(0)'
+    })
+    if (toastTimer) clearTimeout(toastTimer)
+    toastTimer = setTimeout(() => { toast.style.opacity = '0' }, 1800)
+  }
+
+  // ============================================================
+  // Finish activity
+  // ============================================================
+  function finishActivity() {
+    // If there's a Long Text question, save a summary; otherwise just QUIT
+    if (state.QUESTIONS && state.QUESTIONS.length > 0) {
+      const summary = state.saved.length
+        ? `Saved ${state.saved.length} clinic${state.saved.length === 1 ? '' : 's'}: ${state.saved.map(s => s.name).join('; ')}`
+        : 'No clinics saved.'
+      postToApp('QUESTION_RESPONSE', {
+        index: 0,
+        options: [],
+        text: summary,
+        duration: 0
+      })
+      setTimeout(() => postToApp('QUIT', { completeState: 'COMPLETE' }), 400)
+    } else {
+      postToApp('QUIT', { completeState: 'COMPLETE' })
+    }
+  }
+</script>
+
+</body>
+</html>
