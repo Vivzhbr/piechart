@@ -1,0 +1,979 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover" />
+  <title>Streak Counter</title>
+  <style>
+    :root {
+      /* Theme-overridable */
+      --color-primary: #16a34a;
+      --color-secondary: #15803d;
+      --color-dark: #111827;
+      --color-light: #ffffff;
+      --color-background: #f4f6f8;
+      --border-radius: 14px;
+      --border-radius-tile: 10px;
+      --font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+
+      /* Derived */
+      --color-muted: #6b7280;
+      --color-border: #e5e7eb;
+      --color-tile-empty: #f3f4f6;
+      --shadow-card: 0 1px 2px rgba(17,24,39,0.04), 0 4px 12px rgba(17,24,39,0.05);
+      --shadow-hero: 0 10px 30px rgba(0,0,0,0.10);
+    }
+
+    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    html, body {
+      margin: 0; padding: 0;
+      min-height: 100%;
+      background-color: var(--color-background);
+      color: var(--color-dark);
+      font-family: var(--font-family);
+      line-height: 1.45;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .app {
+      max-width: 520px;
+      margin: 0 auto;
+      padding: 16px 16px 32px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    /* Loading */
+    .loading {
+      min-height: 60vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      color: var(--color-muted);
+      font-size: 14px;
+    }
+    .spinner {
+      width: 20px; height: 20px;
+      border: 2.5px solid var(--color-border);
+      border-top-color: var(--color-primary);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* Hero counter */
+    .hero {
+      background: linear-gradient(140deg, var(--color-primary), var(--color-secondary));
+      color: #fff;
+      border-radius: var(--border-radius);
+      padding: 24px 20px 22px;
+      text-align: center;
+      box-shadow: var(--shadow-hero);
+      position: relative;
+      overflow: hidden;
+    }
+    .hero::before {
+      content: "";
+      position: absolute;
+      top: -40%; right: -20%;
+      width: 220px; height: 220px;
+      background: radial-gradient(circle, rgba(255,255,255,0.18), transparent 60%);
+      pointer-events: none;
+    }
+    .hero .greeting {
+      font-size: 13px;
+      opacity: 0.92;
+      letter-spacing: 0.3px;
+      margin: 0 0 6px;
+    }
+    .hero .number {
+      font-size: 72px;
+      font-weight: 800;
+      line-height: 1;
+      margin: 4px 0 6px;
+      font-variant-numeric: tabular-nums;
+      letter-spacing: -2px;
+    }
+    .hero .label {
+      font-size: 17px;
+      font-weight: 600;
+      opacity: 0.96;
+      margin: 0;
+    }
+    .hero .next-milestone {
+      display: inline-block;
+      margin-top: 12px;
+      background: rgba(255,255,255,0.18);
+      padding: 5px 12px;
+      border-radius: 999px;
+      font-size: 12px;
+    }
+
+    /* Check-in button */
+    .checkin {
+      width: 100%;
+      padding: 16px;
+      border: none;
+      border-radius: var(--border-radius);
+      background: var(--color-primary);
+      color: #fff;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      box-shadow: 0 6px 16px rgba(22,163,74,0.25);
+      transition: transform 0.08s ease, box-shadow 0.2s ease, background 0.2s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      min-height: 56px;
+    }
+    .checkin:active { transform: scale(0.98); }
+    .checkin:disabled,
+    .checkin.done {
+      background: #ecfdf5;
+      color: var(--color-secondary);
+      cursor: default;
+      box-shadow: none;
+      border: 1px solid #d1fae5;
+    }
+    .checkin.done::before {
+      content: "✓";
+      font-weight: 700;
+      font-size: 18px;
+    }
+
+    /* Stats row */
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+    }
+    .stat {
+      background: #fff;
+      border-radius: var(--border-radius);
+      padding: 12px 8px;
+      text-align: center;
+      box-shadow: var(--shadow-card);
+    }
+    .stat .v {
+      font-size: 22px;
+      font-weight: 700;
+      color: var(--color-dark);
+      font-variant-numeric: tabular-nums;
+    }
+    .stat .l {
+      font-size: 11px;
+      color: var(--color-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-top: 2px;
+    }
+
+    /* Calendar */
+    .calendar {
+      background: #fff;
+      border-radius: var(--border-radius);
+      padding: 14px 12px 12px;
+      box-shadow: var(--shadow-card);
+    }
+    .calendar-nav {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 8px;
+      padding: 0 4px;
+    }
+    .calendar-nav .title {
+      font-size: 15px;
+      font-weight: 600;
+    }
+    .calendar-nav button {
+      background: none;
+      border: none;
+      width: 36px; height: 36px;
+      border-radius: 50%;
+      cursor: pointer;
+      color: var(--color-dark);
+      font-size: 22px;
+      line-height: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .calendar-nav button:active { background: rgba(0,0,0,0.06); }
+    .calendar-nav button:disabled {
+      color: #d1d5db;
+      cursor: default;
+    }
+
+    .calendar-grid {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 4px;
+    }
+    .calendar-grid .dow {
+      text-align: center;
+      font-size: 10.5px;
+      color: var(--color-muted);
+      font-weight: 600;
+      padding: 4px 0 6px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .day {
+      aspect-ratio: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 13px;
+      color: var(--color-dark);
+      border-radius: var(--border-radius-tile);
+      background: var(--color-tile-empty);
+      position: relative;
+    }
+    .day.outside {
+      background: transparent;
+      color: transparent;
+    }
+    .day.future {
+      background: transparent;
+      color: #d1d5db;
+    }
+    .day.today {
+      box-shadow: inset 0 0 0 2px var(--color-primary);
+      font-weight: 700;
+    }
+    .day.checked {
+      background: var(--color-primary);
+      color: #fff;
+      font-weight: 700;
+    }
+    .day.checked.today {
+      box-shadow: inset 0 0 0 2px #fff, 0 0 0 2px var(--color-primary);
+    }
+
+    /* Secondary actions */
+    .actions {
+      display: flex;
+      gap: 8px;
+    }
+    .btn {
+      flex: 1;
+      padding: 12px;
+      border-radius: var(--border-radius);
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      min-height: 44px;
+      background: #fff;
+      border: 1px solid var(--color-border);
+      color: var(--color-dark);
+    }
+    .btn:active { background: #f9fafb; }
+    .btn.danger { color: #b91c1c; border-color: #fecaca; }
+
+    /* Modal */
+    .modal-backdrop {
+      position: fixed; inset: 0;
+      background: rgba(17,24,39,0.55);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+      z-index: 100;
+      animation: fadeIn 0.15s ease;
+    }
+    .modal-backdrop[hidden] { display: none; }
+    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+    .modal {
+      background: #fff;
+      border-radius: var(--border-radius);
+      padding: 20px;
+      width: 100%;
+      max-width: 360px;
+      box-shadow: 0 20px 40px rgba(0,0,0,0.25);
+    }
+    .modal h3 { margin: 0 0 8px; font-size: 17px; font-weight: 600; }
+    .modal p { margin: 0 0 18px; color: #4b5563; font-size: 14px; }
+    .modal-actions { display: flex; gap: 8px; }
+    .btn-destructive {
+      flex: 1;
+      padding: 12px;
+      border: none;
+      border-radius: var(--border-radius);
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      background: #dc2626;
+      color: #fff;
+      min-height: 44px;
+    }
+
+    /* Confetti */
+    .confetti-layer {
+      position: fixed; inset: 0;
+      pointer-events: none;
+      overflow: hidden;
+      z-index: 90;
+    }
+    .confetti-layer[hidden] { display: none; }
+    .confetti {
+      position: absolute;
+      width: 8px; height: 12px;
+      top: -16px;
+      animation: confettiFall 1.8s cubic-bezier(.2,.7,.4,1) forwards;
+    }
+    @keyframes confettiFall {
+      0%   { transform: translateY(0) rotate(0); opacity: 1; }
+      100% { transform: translateY(110vh) rotate(720deg); opacity: 0; }
+    }
+
+    /* Toast */
+    .toast {
+      position: fixed;
+      left: 50%;
+      bottom: 24px;
+      transform: translateX(-50%);
+      background: var(--color-dark);
+      color: #fff;
+      padding: 10px 18px;
+      border-radius: 999px;
+      font-size: 13px;
+      max-width: 80%;
+      text-align: center;
+      box-shadow: 0 8px 20px rgba(0,0,0,0.25);
+      z-index: 110;
+      animation: toastIn 0.2s ease;
+    }
+    .toast[hidden] { display: none; }
+    @keyframes toastIn {
+      from { opacity: 0; transform: translate(-50%, 8px); }
+      to   { opacity: 1; transform: translate(-50%, 0); }
+    }
+
+    /* Error screen */
+    .error-screen {
+      padding: 40px 20px;
+      text-align: center;
+      color: var(--color-muted);
+    }
+    .error-screen h3 { color: var(--color-dark); margin: 0 0 8px; }
+  </style>
+</head>
+<body>
+  <div id="app" class="app">
+    <div class="loading"><div class="spinner"></div><div>Loading your streak…</div></div>
+  </div>
+
+  <div id="reset-modal" class="modal-backdrop" hidden>
+    <div class="modal">
+      <h3 id="reset-title">Reset your streak?</h3>
+      <p id="reset-body">This will start your count back at 0. You can begin again whenever you’re ready.</p>
+      <div class="modal-actions">
+        <button class="btn" id="reset-cancel">Cancel</button>
+        <button class="btn-destructive" id="reset-confirm">Reset</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="confetti" class="confetti-layer" hidden></div>
+  <div id="toast" class="toast" hidden></div>
+
+  <script>
+  /* ==========================================================================
+   * Cogniss External Template — Streak / Habit / Sobriety Counter
+   *
+   * Mode: Hybrid (display + question-answering)
+   *  - Reads prior completed ActivityResponses to build a per-day check-in set.
+   *  - On check-in: submits one QUESTION_RESPONSE for question[0], then QUITs.
+   *    The QUIT creates today's ActivityResponse, which becomes tomorrow's history.
+   *  - Streak / day-streak Behaviors fire via the existing Cogniss pipeline
+   *    (SEQUENTIAL Simplified Criterion against ActivityResponse for this activity).
+   *  - Reset archives prior ActivityResponses so SEQUENTIAL stops counting them.
+   *
+   * Required messages: API, USER, AUTH, ACTIVITY, ACTIVITY_RESPONSE, CONFIG, QUESTIONS
+   * Expected content: a single TEXT_CONTENT or IMAGE_CONTENT question (no answer needed).
+   * ========================================================================== */
+
+  // ---------- 1. Message bridge ----------
+  var isNative = typeof window.ReactNativeWebView !== 'undefined';
+
+  function postToApp(key, data) {
+    var payload = { key: key };
+    if (data !== undefined && data !== null) payload.data = data;
+    var text = JSON.stringify(payload);
+    if (isNative) {
+      window.ReactNativeWebView.postMessage(text);
+    } else {
+      window.parent.postMessage(text, '*');
+    }
+  }
+
+  function onInbound(event) {
+    try {
+      if (typeof event.data !== 'string') return;
+      var msg = JSON.parse(event.data);
+      if (!msg || !msg.key) return;
+
+      if (msg.key === 'REQUEST_RESPONSE') {
+        var pending = _pending[msg.id];
+        if (pending) {
+          delete _pending[msg.id];
+          if (msg.error) pending.reject(new Error(String(msg.error)));
+          else pending.resolve(msg.data);
+        }
+        return;
+      }
+      // The container echoes back QUESTION_RESPONSE with score info — we don't need it.
+      if (msg.key === 'QUESTION_RESPONSE') return;
+
+      state[msg.key] = msg.data;
+
+      if (initStage === 'WAITING' && requiredReceived()) {
+        initStage = 'STARTING';
+        start().catch(function (err) {
+          console.error('Start failed:', err);
+          renderError('Couldn’t load your streak.', 'Please close and try again.');
+        });
+      }
+    } catch (e) {
+      // Ignore malformed messages
+    }
+  }
+
+  document.addEventListener('message', onInbound);  // Android React Native
+  window.addEventListener('message', onInbound);    // iOS RN + web
+
+  // ---------- 2. REST helper ----------
+  var _reqSeq = 0;
+  var _pending = {};
+
+  function restRequest(method, model, data, specialParams) {
+    return new Promise(function (resolve, reject) {
+      var id = 'req-' + (++_reqSeq);
+      _pending[id] = { resolve: resolve, reject: reject };
+      var text = JSON.stringify({
+        key: 'REST_REQUEST',
+        method: method,
+        model: model,
+        data: data || {},
+        id: id,
+        specialParams: specialParams || null
+      });
+      if (isNative) {
+        window.ReactNativeWebView.postMessage(text);
+      } else {
+        window.parent.postMessage(text, '*');
+      }
+      setTimeout(function () {
+        if (_pending[id]) {
+          delete _pending[id];
+          reject(new Error('REST timeout: ' + model));
+        }
+      }, 20000);
+    });
+  }
+
+  // ---------- 3. State + init ----------
+  var state = {};
+  var initStage = 'WAITING';
+  var REQUIRED = ['API', 'USER', 'AUTH', 'ACTIVITY', 'ACTIVITY_RESPONSE', 'CONFIG', 'QUESTIONS'];
+
+  function requiredReceived() {
+    for (var i = 0; i < REQUIRED.length; i++) {
+      if (state[REQUIRED[i]] === undefined) return false;
+    }
+    return true;
+  }
+
+  window.addEventListener('load', function () {
+    postToApp('READY_DYNAMIC_MEDIA');
+  });
+
+  // ---------- 4. Config ----------
+  // Config keys are snake_case to match the Cogniss admin panel "Data key" rules
+  // (no spaces, use underscores).
+  var DEFAULTS = {
+    habit_label: 'day streak',                  // e.g. "days sober", "day meditation streak"
+    action_label: 'I did it today',             // check-in button text
+    done_label: 'Checked in for today',         // post-check-in button state
+    intro_label: 'Your current streak',         // small text above the big number
+    milestones: [7, 30, 100, 365],              // streak values that trigger celebration
+    allow_reset: true,
+    reset_title: 'Reset your streak?',
+    reset_body: 'This will start your count back at 0. You can begin again whenever you’re ready.',
+    celebrate: true,
+    address_user: true,                         // greet by first name / username
+    milestone_message: 'Milestone reached!'
+  };
+
+  function getConfig() {
+    var variation = (state.TEMPLATE_VARIATION && state.TEMPLATE_VARIATION.config) || {};
+    var custom = state.CONFIG || {};
+    var merged = Object.assign({}, DEFAULTS, variation, custom);
+
+    // Milestones: accept array, JSON string, or comma-separated string.
+    var ms = merged.milestones;
+    if (typeof ms === 'string') {
+      var trimmed = ms.trim();
+      if (trimmed.charAt(0) === '[') {
+        try { ms = JSON.parse(trimmed); } catch (e) { ms = trimmed.split(','); }
+      } else {
+        ms = trimmed.split(',');
+      }
+    }
+    if (!Array.isArray(ms)) ms = DEFAULTS.milestones.slice();
+    ms = ms
+      .map(function (n) { return parseInt(String(n).trim(), 10); })
+      .filter(function (n) { return Number.isFinite(n) && n > 0; })
+      .sort(function (a, b) { return a - b; });
+    merged.milestones = ms;
+    return merged;
+  }
+
+  // ---------- 5. Theme ----------
+  function radiusFor(token) {
+    switch (token) {
+      case 'NONE':   return '0px';
+      case 'SMALL':  return '6px';
+      case 'MEDIUM': return '10px';
+      case 'LARGE':  return '18px';
+      case 'FULL':   return '9999px';
+      default:       return null;
+    }
+  }
+
+  function applyTheme(theme) {
+    if (!theme) return;
+    var root = document.documentElement;
+    var colors = theme.colors || {};
+    if (colors.primary)   root.style.setProperty('--color-primary',   colors.primary);
+    if (colors.secondary) root.style.setProperty('--color-secondary', colors.secondary);
+    if (colors.dark)      root.style.setProperty('--color-dark',      colors.dark);
+    if (colors.light)     root.style.setProperty('--color-light',     colors.light);
+    var r = radiusFor(theme.rounded);
+    if (r) root.style.setProperty('--border-radius', r);
+    var tileR = radiusFor(theme.borderStyle && theme.borderStyle.optionTile);
+    if (tileR) root.style.setProperty('--border-radius-tile', tileR);
+    if (theme.generalBackground && theme.generalBackground.color) {
+      root.style.setProperty('--color-background', theme.generalBackground.color);
+    }
+  }
+
+  async function loadAndApplyTheme() {
+    try {
+      var appId = state.ACTIVITY_RESPONSE && state.ACTIVITY_RESPONSE.app;
+      if (!appId) return;
+      var app = await restRequest('get', 'App', { id: appId });
+      var appTheme = (app && app.theme) || {};
+
+      var platformTheme = {};
+      try {
+        var settings = await restRequest('list', 'Settings', {});
+        if (settings && settings.items && settings.items.length > 0) {
+          platformTheme = settings.items[0].theme || {};
+        }
+      } catch (e) { /* non-fatal */ }
+
+      var merged = {
+        colors: Object.assign({}, platformTheme.colors || {}, appTheme.colors || {}),
+        rounded: appTheme.rounded || platformTheme.rounded,
+        borderStyle: appTheme.borderStyle || {},
+        generalBackground: appTheme.generalBackground || platformTheme.generalBackground
+      };
+      applyTheme(merged);
+    } catch (e) {
+      // Quietly fall back to CSS defaults
+    }
+  }
+
+  // ---------- 6. Date helpers ----------
+  // Bin check-ins by user-local YYYY-MM-DD using User.offset (seconds) when present.
+  function localOffsetSeconds() {
+    if (state.USER && typeof state.USER.offset === 'number') return state.USER.offset;
+    return -new Date().getTimezoneOffset() * 60;
+  }
+  function pad2(n) { return n < 10 ? '0' + n : '' + n; }
+  function toLocalKey(isoOrDate, offsetSec) {
+    var ms = (isoOrDate instanceof Date ? isoOrDate.getTime() : new Date(isoOrDate).getTime());
+    var local = new Date(ms + offsetSec * 1000);
+    return local.getUTCFullYear() + '-' + pad2(local.getUTCMonth() + 1) + '-' + pad2(local.getUTCDate());
+  }
+  function todayKey(offsetSec) { return toLocalKey(new Date(), offsetSec); }
+  function parseKey(key) {
+    var p = key.split('-');
+    return new Date(Date.UTC(+p[0], +p[1] - 1, +p[2]));
+  }
+  function keyMinusDays(key, n) {
+    var d = parseKey(key);
+    d.setUTCDate(d.getUTCDate() - n);
+    return d.getUTCFullYear() + '-' + pad2(d.getUTCMonth() + 1) + '-' + pad2(d.getUTCDate());
+  }
+
+  // ---------- 7. Streak math ----------
+  function currentStreak(checkedSet, offsetSec) {
+    var t = todayKey(offsetSec);
+    var anchor;
+    if (checkedSet.has(t)) {
+      anchor = t;
+    } else {
+      var y = keyMinusDays(t, 1);
+      if (!checkedSet.has(y)) return 0;
+      anchor = y;
+    }
+    var count = 0;
+    var cursor = anchor;
+    while (checkedSet.has(cursor)) {
+      count++;
+      cursor = keyMinusDays(cursor, 1);
+    }
+    return count;
+  }
+
+  function longestStreak(checkedSet) {
+    if (checkedSet.size === 0) return 0;
+    var keys = Array.from(checkedSet).sort();
+    var longest = 1;
+    var run = 1;
+    for (var i = 1; i < keys.length; i++) {
+      if (keyMinusDays(keys[i], 1) === keys[i - 1]) run++;
+      else run = 1;
+      if (run > longest) longest = run;
+    }
+    return longest;
+  }
+
+  function nextMilestone(streak, milestones) {
+    for (var i = 0; i < milestones.length; i++) {
+      if (milestones[i] > streak) return milestones[i];
+    }
+    return null;
+  }
+
+  // ---------- 8. History loading ----------
+  async function loadHistory() {
+    var result = await restRequest('list', 'ActivityResponse', {
+      activity: state.ACTIVITY.id,
+      user: state.USER.id,
+      complete: true,
+      sort: '-date',
+      limit: 500
+    });
+    var items = (result && result.items) || [];
+    var currentId = state.ACTIVITY_RESPONSE && state.ACTIVITY_RESPONSE.id;
+    var offset = localOffsetSeconds();
+    var set = new Set();
+    for (var i = 0; i < items.length; i++) {
+      var ar = items[i];
+      if (!ar || !ar.date) continue;
+      if (ar.id === currentId) continue;
+      if (ar.archived) continue;
+      set.add(toLocalKey(ar.date, offset));
+    }
+    return set;
+  }
+
+  // ---------- 9. Render ----------
+  var ui = {
+    checkedSet: new Set(),
+    offset: 0,
+    viewMonth: null,
+    submitting: false,
+    quitGuard: false
+  };
+
+  function firstName() {
+    var u = state.USER || {};
+    if (u.profile && u.profile.firstName) return String(u.profile.firstName);
+    if (u.displayName) return String(u.displayName).split(/\s+/)[0];
+    if (u.username) return String(u.username);
+    return null;
+  }
+
+  function esc(s) {
+    return String(s == null ? '' : s)
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;').replace(/'/g, '&#039;');
+  }
+
+  function render() {
+    var cfg = getConfig();
+    var todayK = todayKey(ui.offset);
+    var checkedToday = ui.checkedSet.has(todayK);
+    var streak = currentStreak(ui.checkedSet, ui.offset);
+    var best = longestStreak(ui.checkedSet);
+    var total = ui.checkedSet.size;
+    var nm = nextMilestone(streak, cfg.milestones);
+
+    var app = document.getElementById('app');
+    app.innerHTML = '';
+
+    // Hero
+    var hero = document.createElement('div');
+    hero.className = 'hero';
+    var fn = firstName();
+    var greeting = cfg.intro_label || 'Your current streak';
+    if (cfg.address_user && fn) {
+      greeting = fn + ' — ' + greeting.toLowerCase();
+    }
+    hero.innerHTML =
+      '<div class="greeting">' + esc(greeting) + '</div>' +
+      '<div class="number">' + streak + '</div>' +
+      '<div class="label">' + esc(cfg.habit_label) + '</div>' +
+      (nm
+        ? '<div class="next-milestone">Next milestone: ' + nm + '</div>'
+        : (streak > 0 ? '<div class="next-milestone">You’ve passed every milestone — keep going</div>' : ''));
+    app.appendChild(hero);
+
+    // Check-in button
+    var btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'checkin' + (checkedToday ? ' done' : '');
+    btn.disabled = checkedToday || ui.submitting;
+    btn.textContent = checkedToday ? cfg.done_label : cfg.action_label;
+    btn.addEventListener('click', function () { handleCheckIn(); });
+    app.appendChild(btn);
+
+    // Stats
+    var stats = document.createElement('div');
+    stats.className = 'stats';
+    stats.innerHTML =
+      '<div class="stat"><div class="v">' + streak + '</div><div class="l">Current</div></div>' +
+      '<div class="stat"><div class="v">' + best + '</div><div class="l">Best</div></div>' +
+      '<div class="stat"><div class="v">' + total + '</div><div class="l">Total</div></div>';
+    app.appendChild(stats);
+
+    // Calendar
+    app.appendChild(renderCalendar());
+
+    // Actions
+    var actions = document.createElement('div');
+    actions.className = 'actions';
+    if (cfg.allow_reset) {
+      var resetBtn = document.createElement('button');
+      resetBtn.type = 'button';
+      resetBtn.className = 'btn danger';
+      resetBtn.textContent = 'Reset streak';
+      resetBtn.addEventListener('click', openResetModal);
+      actions.appendChild(resetBtn);
+    }
+    var doneBtn = document.createElement('button');
+    doneBtn.type = 'button';
+    doneBtn.className = 'btn';
+    doneBtn.textContent = 'Close';
+    doneBtn.addEventListener('click', function () { quit(); });
+    actions.appendChild(doneBtn);
+    app.appendChild(actions);
+
+    // Sync modal copy
+    document.getElementById('reset-title').textContent = cfg.reset_title;
+    document.getElementById('reset-body').textContent = cfg.reset_body;
+  }
+
+  function renderError(title, body) {
+    var app = document.getElementById('app');
+    app.innerHTML = '<div class="error-screen"><h3>' + esc(title) + '</h3><div>' + esc(body) + '</div></div>';
+  }
+
+  function renderCalendar() {
+    var todayK = todayKey(ui.offset);
+    var today = parseKey(todayK);
+    if (!ui.viewMonth) {
+      ui.viewMonth = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), 1));
+    }
+    var vm = ui.viewMonth;
+    var monthLabel = vm.toLocaleDateString('en-US', { month: 'long', year: 'numeric', timeZone: 'UTC' });
+
+    var wrap = document.createElement('div');
+    wrap.className = 'calendar';
+
+    var nav = document.createElement('div');
+    nav.className = 'calendar-nav';
+    nav.innerHTML =
+      '<button id="cal-prev" aria-label="Previous month">‹</button>' +
+      '<div class="title">' + esc(monthLabel) + '</div>' +
+      '<button id="cal-next" aria-label="Next month">›</button>';
+    wrap.appendChild(nav);
+
+    var grid = document.createElement('div');
+    grid.className = 'calendar-grid';
+    var dowLabels = ['Su','Mo','Tu','We','Th','Fr','Sa'];
+    for (var i = 0; i < 7; i++) {
+      var dow = document.createElement('div');
+      dow.className = 'dow';
+      dow.textContent = dowLabels[i];
+      grid.appendChild(dow);
+    }
+
+    var firstDow = vm.getUTCDay();
+    var daysInMonth = new Date(Date.UTC(vm.getUTCFullYear(), vm.getUTCMonth() + 1, 0)).getUTCDate();
+
+    for (var b = 0; b < firstDow; b++) {
+      var blank = document.createElement('div');
+      blank.className = 'day outside';
+      grid.appendChild(blank);
+    }
+
+    for (var d = 1; d <= daysInMonth; d++) {
+      var dt = new Date(Date.UTC(vm.getUTCFullYear(), vm.getUTCMonth(), d));
+      var key = vm.getUTCFullYear() + '-' + pad2(vm.getUTCMonth() + 1) + '-' + pad2(d);
+      var cell = document.createElement('div');
+      cell.className = 'day';
+      if (ui.checkedSet.has(key)) cell.classList.add('checked');
+      if (key === todayK) cell.classList.add('today');
+      if (dt > today) cell.classList.add('future');
+      cell.textContent = d;
+      grid.appendChild(cell);
+    }
+    wrap.appendChild(grid);
+
+    var currentMonthFirst = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), 1));
+    var nextBtn = nav.querySelector('#cal-next');
+    var prevBtn = nav.querySelector('#cal-prev');
+    if (vm.getTime() >= currentMonthFirst.getTime()) nextBtn.disabled = true;
+    nextBtn.addEventListener('click', function () {
+      if (vm.getTime() >= currentMonthFirst.getTime()) return;
+      ui.viewMonth = new Date(Date.UTC(vm.getUTCFullYear(), vm.getUTCMonth() + 1, 1));
+      render();
+    });
+    prevBtn.addEventListener('click', function () {
+      ui.viewMonth = new Date(Date.UTC(vm.getUTCFullYear(), vm.getUTCMonth() - 1, 1));
+      render();
+    });
+    return wrap;
+  }
+
+  // ---------- 10. Check-in flow ----------
+  function handleCheckIn() {
+    if (ui.submitting) return;
+    var todayK = todayKey(ui.offset);
+    if (ui.checkedSet.has(todayK)) return;
+
+    ui.submitting = true;
+    var cfg = getConfig();
+
+    // Optimistic: mark today checked locally
+    ui.checkedSet.add(todayK);
+    var streakAfter = currentStreak(ui.checkedSet, ui.offset);
+    render();
+
+    // Submit one QUESTION_RESPONSE for the content question.
+    var questions = state.QUESTIONS || [];
+    if (questions.length > 0) {
+      postToApp('QUESTION_RESPONSE', {
+        index: 0,
+        options: [],
+        duration: 0
+      });
+    }
+
+    var hitMilestone = cfg.milestones.indexOf(streakAfter) >= 0;
+    if (hitMilestone && cfg.celebrate) {
+      fireConfetti();
+      showToast('🎉 ' + streakAfter + ' — ' + cfg.milestone_message);
+    } else {
+      showToast('Checked in. Streak: ' + streakAfter);
+    }
+
+    // QUIT after a beat — long enough to show the new state (and confetti)
+    setTimeout(function () { quit(); }, hitMilestone && cfg.celebrate ? 1700 : 800);
+  }
+
+  function quit() {
+    if (ui.quitGuard) return;
+    ui.quitGuard = true;
+    postToApp('QUIT', { completeState: 'COMPLETE' });
+  }
+
+  // ---------- 11. Reset flow ----------
+  function openResetModal() {
+    document.getElementById('reset-modal').hidden = false;
+  }
+  function closeResetModal() {
+    document.getElementById('reset-modal').hidden = true;
+  }
+
+  async function performReset() {
+    closeResetModal();
+    if (ui.checkedSet.size === 0) {
+      showToast('Streak is already at 0.');
+      return;
+    }
+    showToast('Resetting…');
+    try {
+      var listResult = await restRequest('list', 'ActivityResponse', {
+        activity: state.ACTIVITY.id,
+        user: state.USER.id,
+        complete: true,
+        sort: '-date',
+        limit: 500
+      });
+      var items = (listResult && listResult.items) || [];
+      var failures = 0, attempted = 0;
+      for (var i = 0; i < items.length; i++) {
+        if (items[i].archived) continue;
+        attempted++;
+        try {
+          await restRequest('put', 'ActivityResponse', { id: items[i].id, archived: true });
+        } catch (e) {
+          failures++;
+        }
+      }
+      if (attempted > 0 && failures === attempted) {
+        showToast('Couldn’t reset — please try again.');
+        return;
+      }
+      ui.checkedSet = new Set();
+      render();
+      showToast(failures === 0 ? 'Streak reset to 0.' : 'Reset (with some skipped).');
+    } catch (e) {
+      showToast('Couldn’t reset — please try again.');
+    }
+  }
+
+  // ---------- 12. Confetti + toast ----------
+  function fireConfetti() {
+    var layer = document.getElementById('confetti');
+    layer.hidden = false;
+    layer.innerHTML = '';
+    var colors = ['#16a34a','#22c55e','#facc15','#3b82f6','#ef4444','#a855f7','#fb923c'];
+    for (var i = 0; i < 70; i++) {
+      var c = document.createElement('div');
+      c.className = 'confetti';
+      c.style.left = (Math.random() * 100) + 'vw';
+      c.style.backgroundColor = colors[i % colors.length];
+      c.style.animationDelay = (Math.random() * 0.5) + 's';
+      c.style.transform = 'rotate(' + (Math.random() * 360) + 'deg)';
+      layer.appendChild(c);
+    }
+    setTimeout(function () { layer.hidden = true; layer.innerHTML = ''; }, 2000);
+  }
+
+  var _toastTimer = null;
+  function showToast(msg) {
+    var t = document.getElementById('toast');
+    t.textContent = msg;
+    t.hidden = false;
+    if (_toastTimer) clearTimeout(_toastTimer);
+    _toastTimer = setTimeout(function () { t.hidden = true; }, 2400);
+  }
+
+  // ---------- 13. Boot ----------
+  async function start() {
+    ui.offset = localOffsetSeconds();
+    await loadAndApplyTheme();
+    ui.checkedSet = await loadHistory();
+    render();
+  }
+
+  // Wire modal buttons once DOM is ready
+  document.addEventListener('DOMContentLoaded', function () {
+    document.getElementById('reset-cancel').addEventListener('click', closeResetModal);
+    document.getElementById('reset-confirm').addEventListener('click', performReset);
+  });
+  </script>
+</body>
+</html>
